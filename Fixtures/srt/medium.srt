@@ -1,0 +1,24 @@
+1
+00:00:01,000 --> 00:00:04,500
+The Amazon rainforest is the largest tropical rainforest in the world.
+
+2
+00:00:05,000 --> 00:00:09,000
+It spans across nine countries, with the majority located in Brazil.
+
+3
+00:00:10,000 --> 00:00:14,500
+This incredible ecosystem is home to an estimated ten million species of plants and animals.
+
+4
+00:00:15,000 --> 00:00:19,000
+The rainforest plays a vital role in regulating the Earth's climate by absorbing carbon dioxide.
+
+5
+00:00:20,000 --> 00:00:24,000
+Deforestation remains the greatest threat to this remarkable natural treasure.
+
+6
+00:00:25,000 --> 00:00:28,000
+Conservation efforts continue to protect the forest for future generations.
+

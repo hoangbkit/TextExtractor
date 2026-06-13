@@ -1,0 +1,40 @@
+1
+00:00:01,000 --> 00:00:06,000
+The Great Barrier Reef is the largest living structure on Earth, visible from outer space.
+
+2
+00:00:06,500 --> 00:00:11,000
+It stretches over two thousand three hundred kilometers along the coast of Queensland, Australia.
+
+3
+00:00:11,500 --> 00:00:16,000
+This underwater paradise is composed of nearly three thousand individual reef systems and nine hundred islands.
+
+4
+00:00:16,500 --> 00:00:21,000
+The reef is home to an extraordinary diversity of marine life, including over fifteen hundred species of fish.
+
+5
+00:00:21,500 --> 00:00:26,000
+Sea turtles, dolphins, sharks, and manta rays all inhabit these vibrant coral waters.
+
+6
+00:00:26,500 --> 00:00:31,000
+The corals themselves are living organisms, comprising colonies of tiny animals called polyps.
+
+7
+00:00:31,500 --> 00:00:36,000
+Climate change poses the single greatest threat to the reef's survival.
+
+8
+00:00:36,500 --> 00:00:41,000
+Rising ocean temperatures cause coral bleaching, which can be fatal if sustained.
+
+9
+00:00:41,500 --> 00:00:46,000
+Despite these challenges, parts of the reef remain remarkably resilient and continue to regenerate.
+
+10
+00:00:46,500 --> 00:00:52,000
+Scientists and conservationists around the world are working together to protect this natural wonder.
+

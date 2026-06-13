@@ -1,0 +1,8 @@
+1
+00:00:01,000 --> 00:00:04,500
+The sun dipped below the horizon, painting the sky in brilliant shades of orange and crimson.
+
+2
+00:00:05,000 --> 00:00:08,000
+A lone sailboat drifted peacefully across the calm evening waters.
+

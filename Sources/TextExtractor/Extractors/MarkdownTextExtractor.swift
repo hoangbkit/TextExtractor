@@ -44,8 +44,8 @@ public struct MarkdownTextExtractor: TextFormatExtractor {
 
         value = lines.joined(separator: "\n")
         value = value.replacingOccurrences(of: #"`+([^`\n]*?)`+"#, with: "$1", options: .regularExpression)
-        value = value.replacingOccurrences(of: #"(\*\*|__)(.*?)\1"#, with: "$2", options: .regularExpression)
-        value = value.replacingOccurrences(of: #"(\*|_)(.*?)\1"#, with: "$2", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"(?<!\\)(\*\*|__)(.*?)(?<!\\)\1"#, with: "$2", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"(?<!\\)(\*|_)(.*?)(?<!\\)\1"#, with: "$2", options: .regularExpression)
         value = value.replacingOccurrences(of: #"~~(.*?)~~"#, with: "$1", options: .regularExpression)
         value = value.replacingOccurrences(of: #"\\([\\`*_{}\[\]()#+\-.!>])"#, with: "$1", options: .regularExpression)
         value = value.replacingOccurrences(of: "|", with: " ")

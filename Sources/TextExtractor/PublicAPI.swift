@@ -47,6 +47,15 @@ public struct TextExtractionOptions: Sendable, Equatable {
     public var includeDOCXEndnotes: Bool
     public var includeDOCXHeadersAndFooters: Bool
 
+    /// Maximum uncompressed size of any single archive entry loaded by an archive-backed extractor.
+    public var maxArchiveEntryBytes: Int
+
+    /// Maximum cumulative uncompressed bytes loaded from an archive during one extraction.
+    public var maxExpandedArchiveBytes: Int
+
+    /// Maximum number of entries accepted in an archive container.
+    public var maxArchiveEntryCount: Int
+
     public init(
         maxInputBytes: Int = 50 * 1024 * 1024,
         normalizeWhitespace: Bool = true,
@@ -59,7 +68,10 @@ public struct TextExtractionOptions: Sendable, Equatable {
         subtitleCueSeparator: String = "\n",
         includeDOCXFootnotes: Bool = true,
         includeDOCXEndnotes: Bool = true,
-        includeDOCXHeadersAndFooters: Bool = false
+        includeDOCXHeadersAndFooters: Bool = false,
+        maxArchiveEntryBytes: Int = 64 * 1024 * 1024,
+        maxExpandedArchiveBytes: Int = 128 * 1024 * 1024,
+        maxArchiveEntryCount: Int = 2_048
     ) {
         self.maxInputBytes = maxInputBytes
         self.normalizeWhitespace = normalizeWhitespace
@@ -73,6 +85,9 @@ public struct TextExtractionOptions: Sendable, Equatable {
         self.includeDOCXFootnotes = includeDOCXFootnotes
         self.includeDOCXEndnotes = includeDOCXEndnotes
         self.includeDOCXHeadersAndFooters = includeDOCXHeadersAndFooters
+        self.maxArchiveEntryBytes = maxArchiveEntryBytes
+        self.maxExpandedArchiveBytes = maxExpandedArchiveBytes
+        self.maxArchiveEntryCount = maxArchiveEntryCount
     }
 }
 

@@ -75,6 +75,23 @@ final class DOCXTextExtractorTests: XCTestCase {
         XCTAssertTrue(withHeaders.text.contains("Header text."))
     }
 
+    func testMalformedOptionalDOCXPartUsesStableWarningCode() throws {
+        let url = try makeDOCX(entries: [
+            "[Content_Types].xml": "<Types></Types>",
+            "word/document.xml": """
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Body text.</w:t></w:r></w:p></w:body></w:document>
+            """,
+            "word/footnotes.xml": "<w:footnotes>"
+        ])
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+
+        let document = try TextExtractor().extract(from: url)
+
+        XCTAssertEqual(document.text, "Body text.")
+        XCTAssertEqual(document.warnings.count, 1)
+        XCTAssertEqual(document.warnings[0].code, .skippedDOCXFootnotes)
+    }
+
     private func makeDOCX(entries: [String: String]) throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("TextExtractorTests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

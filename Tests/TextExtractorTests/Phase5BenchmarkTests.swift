@@ -22,16 +22,17 @@ final class Phase5BenchmarkTests: XCTestCase {
             ("docx-body", try makeDOCXData(bodyText: String(repeating: "DOCX benchmark paragraph. ", count: 20_000)), "benchmark.docx", 3)
         ]
 
+        let clock = ContinuousClock()
         for benchmark in cases {
             let extractor = TextExtractor()
             _ = try extractor.extract(data: benchmark.data, fileName: benchmark.fileName)
 
-            let start = ContinuousClock.now
+            let start = clock.now
             var lastDocument: ExtractedTextDocument?
             for _ in 0..<benchmark.iterations {
                 lastDocument = try extractor.extract(data: benchmark.data, fileName: benchmark.fileName)
             }
-            let elapsed = start.duration(to: .now)
+            let elapsed = start.duration(to: clock.now)
             let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000_000
             let perIterationMilliseconds = seconds * 1_000 / Double(benchmark.iterations)
             let expanded = lastDocument?.metadata["expandedArchiveBytes"] ?? "n/a"

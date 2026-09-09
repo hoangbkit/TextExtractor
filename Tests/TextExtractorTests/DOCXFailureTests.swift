@@ -25,20 +25,14 @@ final class DOCXFailureTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appendingPathComponent("fixture.docx")
 
-        guard let archive = Archive(url: url, accessMode: .create) else {
-            throw NSError(
-                domain: "TextExtractorTests",
-                code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Could not create ZIP archive."]
-            )
-        }
+        let archive = try Archive(url: url, accessMode: .create)
 
         for (path, string) in entries {
             let data = Data(string.utf8)
             try archive.addEntry(
                 with: path,
                 type: .file,
-                uncompressedSize: UInt32(data.count),
+                uncompressedSize: Int64(data.count),
                 compressionMethod: .deflate
             ) { position, size in
                 let start = Int(position)

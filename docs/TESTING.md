@@ -2,6 +2,18 @@
 
 TextExtractor treats parser behavior as a compatibility surface. Every parser fix should be backed by a focused unit test and, when the issue comes from a real document shape, a regression fixture.
 
+## Supported CI platforms
+
+The package minimums are macOS 15+ and iOS 26+.
+
+GitHub Actions verifies the package and macOS demo on all of these runners:
+
+- Intel macOS 15: `macos-15-intel`
+- Apple Silicon macOS 15: `macos-15`
+- Apple Silicon macOS 26: `macos-26`
+
+The iOS demo is generated and built for a generic iOS Simulator destination on `macos-26`.
+
 ## Local verification
 
 Run the complete package suite:
@@ -16,18 +28,25 @@ Verify the release configuration:
 swift build -c release
 ```
 
-Build the macOS demo without signing:
+Both demo apps use XcodeGen. Install it first:
 
 ```bash
-xcodebuild \
-  -scheme TextExtractorDemo \
-  -project Examples/TextExtractorDemo/TextExtractorDemo.xcodeproj \
-  -destination 'platform=macOS' \
-  CODE_SIGNING_ALLOWED=NO \
-  build
+brew install xcodegen
 ```
 
-The same checks, plus package-manifest validation, run in GitHub Actions for pull requests and pushes to `master`.
+Generate/build the macOS demo:
+
+```bash
+make build
+```
+
+Generate/build the iOS simulator demo:
+
+```bash
+make ios-build
+```
+
+Generated `.xcodeproj` directories are intentionally ignored and must not be committed.
 
 ## Test organization
 
@@ -112,7 +131,9 @@ Before merging a parser behavior change:
 - reuse shared `FixtureSupport` utilities instead of duplicating fixture infrastructure
 - run `swift test --parallel`
 - run `swift build -c release`
-- ensure the demo still builds
+- regenerate both XcodeGen demo projects
+- build the macOS demo
+- build the iOS demo for the Simulator
 - verify no unrelated fixture output regressed
 - prefer safe failure over returning garbage text
 

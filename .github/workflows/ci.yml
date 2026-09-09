@@ -23,12 +23,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Toolchain info
         run: |
           swift --version
           xcodebuild -version
+
+      - name: Validate package manifest
+        run: swift package dump-package > /dev/null
 
       - name: Run package tests
         run: swift test --parallel

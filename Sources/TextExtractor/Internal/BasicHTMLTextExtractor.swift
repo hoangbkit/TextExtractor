@@ -8,9 +8,11 @@ enum BasicHTMLTextExtractor {
 
     static func extractText(fromHTMLString html: String, options: TextExtractionOptions) -> String {
         var value = html
+        value = value.replacingOccurrences(of: #"(?s)<!--.*?-->"#, with: "\n", options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?is)<(script|style|noscript)[^>]*>.*?</\1>"#, with: "\n", options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?i)<br\s*/?>"#, with: "\n", options: .regularExpression)
-        value = value.replacingOccurrences(of: #"(?i)</(p|div|section|article|header|footer|h[1-6]|li|tr|blockquote)>"#, with: "\n", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"(?i)<hr\s*/?>"#, with: "\n", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"(?i)</(p|div|section|article|header|footer|main|aside|nav|h[1-6]|li|tr|blockquote|pre)>"#, with: "\n", options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?i)<li[^>]*>"#, with: "\n", options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?i)</t[dh]>"#, with: "\t", options: .regularExpression)
         value = stripTags(value)
@@ -19,6 +21,39 @@ enum BasicHTMLTextExtractor {
     }
 
     static func stripTags(_ string: String) -> String {
-        string.replacingOccurrences(of: #"(?s)<[^>]+>"#, with: " ", options: .regularExpression)
+        var output = ""
+        var insideTag = false
+        var quote: Character?
+        var index = string.startIndex
+
+        while index < string.endIndex {
+            let character = string[index]
+            if insideTag {
+                if let activeQuote = quote {
+                    if character == activeQuote { quote = nil }
+                } else if character == "\"" || character == "'" {
+                    quote = character
+                } else if character == ">" {
+                    insideTag = false
+                    output.append(" ")
+                }
+            } else if character == "<" {
+                let next = string.index(after: index)
+                if next < string.endIndex {
+                    let candidate = string[next]
+                    if candidate.isLetter || candidate == "/" || candidate == "!" || candidate == "?" {
+                        insideTag = true
+                    } else {
+                        output.append(character)
+                    }
+                } else {
+                    output.append(character)
+                }
+            } else {
+                output.append(character)
+            }
+            index = string.index(after: index)
+        }
+        return output
     }
 }

@@ -52,10 +52,12 @@ enum StringDecoder {
         }
 
         if bytes.starts(with: [0xFF, 0xFE]) {
+            guard (data.count - 2).isMultiple(of: 2) else { return nil }
             return String(data: data.dropFirst(2), encoding: .utf16LittleEndian)
         }
 
         if bytes.starts(with: [0xFE, 0xFF]) {
+            guard (data.count - 2).isMultiple(of: 2) else { return nil }
             return String(data: data.dropFirst(2), encoding: .utf16BigEndian)
         }
 
@@ -95,13 +97,13 @@ enum StringDecoder {
         guard !sample.isEmpty else { return false }
 
         let knownBinarySignatures: [[UInt8]] = [
-            [0x89, 0x50, 0x4E, 0x47],             // PNG
-            [0xFF, 0xD8, 0xFF],                   // JPEG
-            [0x47, 0x49, 0x46, 0x38],             // GIF
-            [0x25, 0x50, 0x44, 0x46, 0x2D],       // PDF
-            [0x50, 0x4B, 0x03, 0x04],             // ZIP / OOXML
-            [0x50, 0x4B, 0x05, 0x06],             // Empty ZIP
-            [0x50, 0x4B, 0x07, 0x08]              // Spanned ZIP
+            [0x89, 0x50, 0x4E, 0x47],
+            [0xFF, 0xD8, 0xFF],
+            [0x47, 0x49, 0x46, 0x38],
+            [0x25, 0x50, 0x44, 0x46, 0x2D],
+            [0x50, 0x4B, 0x03, 0x04],
+            [0x50, 0x4B, 0x05, 0x06],
+            [0x50, 0x4B, 0x07, 0x08]
         ]
 
         if knownBinarySignatures.contains(where: { sample.starts(with: $0) }) {

@@ -23,10 +23,7 @@ public enum TextExtractionFormat: String, CaseIterable, Sendable, Equatable {
 }
 
 public enum MarkdownExtractionMode: Sendable, Equatable {
-    /// Keep the original Markdown mostly intact. Useful when another cleaner/LLM handles cleanup.
     case raw
-
-    /// Convert common Markdown syntax into speech-friendly readable text.
     case readableText
 }
 
@@ -36,16 +33,16 @@ public struct TextExtractionOptions: Sendable, Equatable {
     public var preserveParagraphs: Bool
     public var paragraphSeparator: String
     public var startAccessingSecurityScopedResource: Bool
-
     public var markdownMode: MarkdownExtractionMode
     public var dropMarkdownCodeBlocks: Bool
-
     public var removeDuplicateSubtitleLines: Bool
     public var subtitleCueSeparator: String
-
     public var includeDOCXFootnotes: Bool
     public var includeDOCXEndnotes: Bool
     public var includeDOCXHeadersAndFooters: Bool
+    public var maxArchiveEntryBytes: Int
+    public var maxExpandedArchiveBytes: Int
+    public var maxArchiveEntryCount: Int
 
     public init(
         maxInputBytes: Int = 50 * 1024 * 1024,
@@ -59,7 +56,10 @@ public struct TextExtractionOptions: Sendable, Equatable {
         subtitleCueSeparator: String = "\n",
         includeDOCXFootnotes: Bool = true,
         includeDOCXEndnotes: Bool = true,
-        includeDOCXHeadersAndFooters: Bool = false
+        includeDOCXHeadersAndFooters: Bool = false,
+        maxArchiveEntryBytes: Int = 64 * 1024 * 1024,
+        maxExpandedArchiveBytes: Int = 128 * 1024 * 1024,
+        maxArchiveEntryCount: Int = 2_048
     ) {
         self.maxInputBytes = maxInputBytes
         self.normalizeWhitespace = normalizeWhitespace
@@ -73,6 +73,9 @@ public struct TextExtractionOptions: Sendable, Equatable {
         self.includeDOCXFootnotes = includeDOCXFootnotes
         self.includeDOCXEndnotes = includeDOCXEndnotes
         self.includeDOCXHeadersAndFooters = includeDOCXHeadersAndFooters
+        self.maxArchiveEntryBytes = maxArchiveEntryBytes
+        self.maxExpandedArchiveBytes = maxExpandedArchiveBytes
+        self.maxArchiveEntryCount = maxArchiveEntryCount
     }
 }
 
@@ -99,9 +102,27 @@ public struct ExtractedTextSegment: Sendable, Equatable, Identifiable {
 }
 
 public struct TextExtractionWarning: Sendable, Equatable, CustomStringConvertible {
+    public enum Code: String, Sendable, Equatable {
+        case unspecified
+        case malformedSubtitleTimestamp
+        case skippedDOCXFootnotes
+        case skippedDOCXEndnotes
+        case skippedDOCXHeader
+        case skippedDOCXFooter
+        case unsupportedDOCXFeature
+        case lossyEncodingFallback
+    }
+
+    public var code: Code
     public var message: String
 
-    public init(_ message: String) {
+    public init(_ message: String, code: Code = .unspecified) {
+        self.code = code
+        self.message = message
+    }
+
+    public init(code: Code, message: String) {
+        self.code = code
         self.message = message
     }
 

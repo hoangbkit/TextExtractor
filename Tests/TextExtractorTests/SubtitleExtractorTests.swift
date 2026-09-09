@@ -1,0 +1,107 @@
+import Foundation
+import XCTest
+
+@testable import TextExtractor
+
+final class SubtitleExtractorTests: XCTestCase {
+    func testSRTCreatesSegmentsAndReadableText() throws {
+        let srt = """
+        1
+        00:00:01,000 --> 00:00:03,500
+        Hello <i>world</i>.
+
+        2
+        00:00:04,000 --> 00:00:06,000
+        This is Spokio.
+        """
+        let document = try TextExtractor().extract(data: Data(srt.utf8), fileName: "captions.srt")
+        XCTAssertEqual(document.format, .srt)
+        XCTAssertEqual(document.segments.count, 2)
+        XCTAssertEqual(document.segments[0].id, "srt-1")
+        XCTAssertEqual(document.segments[0].metadata["sourceCueID"], "1")
+        XCTAssertEqual(document.segments[0].text, "Hello world.")
+        XCTAssertEqual(try XCTUnwrap(document.segments[0].startTime), 1.0, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(document.segments[0].endTime), 3.5, accuracy: 0.001)
+        XCTAssertTrue(document.text.contains("This is Spokio."))
+    }
+
+    func testVTTSkipsHeaderAndParsesCueSettings() throws {
+        let vtt = """
+        WEBVTT
+
+        intro
+        00:00:00.000 --> 00:00:02.000 align:start position:0%
+        Welcome &amp; hello.
+
+        00:00:02.000 --> 00:00:03.250
+        Welcome &amp; hello.
+
+        00:00:04.000 --> 00:00:05.000
+        Next line.
+        """
+        let document = try TextExtractor().extract(data: Data(vtt.utf8), fileName: "captions.vtt")
+        XCTAssertEqual(document.segments.count, 2)
+        XCTAssertEqual(document.segments[0].id, "vtt-1")
+        XCTAssertEqual(document.segments[0].metadata["sourceCueID"], "intro")
+        XCTAssertEqual(document.segments[0].text, "Welcome & hello.")
+        XCTAssertEqual(document.segments[1].text, "Next line.")
+    }
+
+    func testRepeatedSourceCueIDsStillProduceUniqueSegmentIDs() throws {
+        let srt = """
+        same
+        00:00:01,000 --> 00:00:02,000
+        First.
+
+        same
+        00:00:03,000 --> 00:00:04,000
+        Second.
+        """
+        let document = try TextExtractor().extract(data: Data(srt.utf8), fileName: "repeat.srt")
+        XCTAssertEqual(Set(document.segments.map(\.id)).count, 2)
+        XCTAssertEqual(document.segments.map { $0.metadata["sourceCueID"] }, ["same", "same"])
+    }
+
+    func testRollingCaptionsEmitOnlyNewWords() throws {
+        let srt = """
+        1
+        00:00:01,000 --> 00:00:02,000
+        We are
+
+        2
+        00:00:02,000 --> 00:00:03,000
+        We are going
+
+        3
+        00:00:03,000 --> 00:00:04,000
+        are going home
+        """
+        let document = try TextExtractor().extract(data: Data(srt.utf8), fileName: "rolling.srt")
+        XCTAssertEqual(document.segments.map(\.text), ["We are", "going", "home"])
+        XCTAssertEqual(document.text, "We are\n\ngoing\n\nhome")
+    }
+
+    func testMalformedTimestampKeepsTextAndAddsWarning() throws {
+        let srt = """
+        1
+        bad --> 00:00:02,000
+        Keep this text.
+        """
+        let document = try TextExtractor().extract(data: Data(srt.utf8), fileName: "lenient.srt")
+        XCTAssertEqual(document.segments.first?.text, "Keep this text.")
+        XCTAssertNil(document.segments.first?.startTime)
+        XCTAssertEqual(document.warnings.first?.code, .malformedSubtitleTimestamp)
+    }
+
+    func testSRTWithoutCuesFailsAsEmptyDocument() {
+        XCTAssertThrowsError(try TextExtractor().extract(data: Data("not a subtitle".utf8), fileName: "broken.srt")) { error in
+            guard case TextExtractionError.emptyDocument = error else { return XCTFail("Expected empty document, got \(error)") }
+        }
+    }
+
+    func testVTTWithoutCuesFailsAsEmptyDocument() {
+        XCTAssertThrowsError(try TextExtractor().extract(data: Data("WEBVTT\n\nNOTE no cues".utf8), fileName: "broken.vtt")) { error in
+            guard case TextExtractionError.emptyDocument = error else { return XCTFail("Expected empty document, got \(error)") }
+        }
+    }
+}

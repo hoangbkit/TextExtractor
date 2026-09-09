@@ -1,0 +1,28 @@
+name: TextExtractorDemo
+
+options:
+  minimumXcodeGenVersion: 2.46.0
+  deploymentTarget:
+    macOS: "15.0"
+
+packages:
+  TextExtractor:
+    path: ../..
+
+targets:
+  TextExtractorDemo:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - Sources/TextExtractorDemo
+    dependencies:
+      - package: TextExtractor
+        product: TextExtractor
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: pro.byok.TextExtractorDemo
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_ENTITLEMENTS: TextExtractorDemo.entitlements
+        ENABLE_HARDENED_RUNTIME: YES

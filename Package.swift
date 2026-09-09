@@ -4,8 +4,8 @@ import PackageDescription
 let package = Package(
     name: "TextExtractor",
     platforms: [
-        .macOS(.v13),
-        .iOS(.v16)
+        .macOS("15.0"),
+        .iOS("26.0")
     ],
     products: [
         .library(name: "TextExtractor", targets: ["TextExtractor"])

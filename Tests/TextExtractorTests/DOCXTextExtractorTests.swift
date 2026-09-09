@@ -1,11 +1,10 @@
 import XCTest
-import Foundation
-import ZIPFoundation
+
 @testable import TextExtractor
 
 final class DOCXTextExtractorTests: XCTestCase {
     func testDOCXExtractsParagraphsTablesFootnotesAndEndnotes() throws {
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "[Content_Types].xml": """
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -41,13 +40,13 @@ final class DOCXTextExtractorTests: XCTestCase {
             </w:endnotes>
             """
         ])
-        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let document = try TextExtractor().extract(from: url)
 
         XCTAssertEqual(document.format, .docx)
         XCTAssertTrue(document.text.contains("Hello DOCX."))
-        XCTAssertTrue(document.text.contains("Second paragraph with tab."))
+        XCTAssertTrue(document.text.contains("Second paragraph\twith tab."))
         XCTAssertTrue(document.text.contains("Cell A"))
         XCTAssertTrue(document.text.contains("Cell B"))
         XCTAssertTrue(document.text.contains("Footnote text."))
@@ -55,7 +54,7 @@ final class DOCXTextExtractorTests: XCTestCase {
     }
 
     func testDOCXHeadersAndFootersAreOptional() throws {
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "[Content_Types].xml": "<Types></Types>",
             "word/document.xml": """
             <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Body only.</w:t></w:r></w:p></w:body></w:document>
@@ -64,7 +63,7 @@ final class DOCXTextExtractorTests: XCTestCase {
             <w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:r><w:t>Header text.</w:t></w:r></w:p></w:hdr>
             """
         ])
-        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let defaultDoc = try TextExtractor().extract(from: url)
         XCTAssertFalse(defaultDoc.text.contains("Header text."))
@@ -75,29 +74,20 @@ final class DOCXTextExtractorTests: XCTestCase {
         XCTAssertTrue(withHeaders.text.contains("Header text."))
     }
 
-    private func makeDOCX(entries: [String: String]) throws -> URL {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("TextExtractorTests-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let url = directory.appendingPathComponent("fixture.docx")
+    func testMalformedOptionalDOCXPartUsesStableWarningCode() throws {
+        let url = try FixtureSupport.makeArchiveFile(entries: [
+            "[Content_Types].xml": "<Types></Types>",
+            "word/document.xml": """
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Body text.</w:t></w:r></w:p></w:body></w:document>
+            """,
+            "word/footnotes.xml": "<w:footnotes>"
+        ])
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
-        guard let archive = Archive(url: url, accessMode: .create) else {
-            throw NSError(domain: "TextExtractorTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not create ZIP archive."])
-        }
+        let document = try TextExtractor().extract(from: url)
 
-        for (path, string) in entries {
-            let data = Data(string.utf8)
-            try archive.addEntry(
-                with: path,
-                type: .file,
-                uncompressedSize: UInt32(data.count),
-                compressionMethod: .deflate
-            ) { position, size in
-                let start = Int(position)
-                let end = start + size
-                return data.subdata(in: start..<end)
-            }
-        }
-
-        return url
+        XCTAssertEqual(document.text, "Body text.")
+        XCTAssertEqual(document.warnings.count, 1)
+        XCTAssertEqual(document.warnings[0].code, .skippedDOCXFootnotes)
     }
 }

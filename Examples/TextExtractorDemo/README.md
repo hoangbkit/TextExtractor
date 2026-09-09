@@ -1,18 +1,20 @@
 # TextExtractorDemo
 
-A small macOS SwiftUI Xcode project that demonstrates the `TextExtractor` package.
+A macOS 15+ SwiftUI demo for the `TextExtractor` package.
 
-## Open in Xcode
+The Xcode project is generated with XcodeGen and is intentionally not committed.
 
-Open:
+## Generate and open
 
-```text
-Examples/TextExtractorDemo/TextExtractorDemo.xcodeproj
+```bash
+cd Examples/TextExtractorDemo
+xcodegen generate
+open TextExtractorDemo.xcodeproj
 ```
 
 Then select the `TextExtractorDemo` scheme and run.
 
-The project links the package at `../..`, so keep the demo inside the `TextExtractor` repository/folder.
+The generated project links the local package at `../..`, so keep the demo inside the `TextExtractor` repository.
 
 ## What it demos
 
@@ -25,6 +27,6 @@ The project links the package at `../..`, so keep the demo inside the `TextExtra
 
 ## Notes
 
-The demo is intentionally not sandboxed. It resolves `Fixtures` from the source checkout path embedded at compile time, so the repository should remain at the same path while the built app is running.
+The demo resolves `Fixtures` from the source checkout path embedded at compile time, so the repository should remain at the same path while the built app is running.
 
-DOCX extraction uses the root package dependency on `ZIPFoundation`, so Xcode may fetch that package the first time you open/build the project.
+CI regenerates this project with XcodeGen and builds it on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26 runners.

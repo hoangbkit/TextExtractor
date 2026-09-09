@@ -1,0 +1,28 @@
+name: TextExtractorIOSDemo
+
+options:
+  minimumXcodeGenVersion: 2.46.0
+  deploymentTarget:
+    iOS: "26.0"
+
+packages:
+  TextExtractor:
+    path: ../..
+
+targets:
+  TextExtractorIOSDemo:
+    type: application
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - Sources/TextExtractorIOSDemo
+    dependencies:
+      - package: TextExtractor
+        product: TextExtractor
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: pro.byok.TextExtractorIOSDemo
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: TextExtractor Demo
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"

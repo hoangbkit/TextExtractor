@@ -7,7 +7,7 @@ TextExtractor treats parser behavior as a compatibility surface. Every parser fi
 Run the complete package suite:
 
 ```bash
-swift test
+swift test --parallel
 ```
 
 Verify the release configuration:
@@ -19,17 +19,23 @@ swift build -c release
 Build the macOS demo without signing:
 
 ```bash
-make build
+xcodebuild \
+  -scheme TextExtractorDemo \
+  -project Examples/TextExtractorDemo/TextExtractorDemo.xcodeproj \
+  -destination 'platform=macOS' \
+  CODE_SIGNING_ALLOWED=NO \
+  build
 ```
 
-The same checks run in GitHub Actions for pull requests and pushes to `master`.
+The same checks, plus package-manifest validation, run in GitHub Actions for pull requests and pushes to `master`.
 
 ## Test organization
 
-Tests are grouped by the component they verify:
+Tests are grouped by the behavior they verify:
 
 ```text
 Tests/TextExtractorTests/
+  APIContractTests.swift
   CoordinatorTests.swift
   PlainTextExtractorTests.swift
   MarkdownTextExtractorTests.swift
@@ -37,15 +43,22 @@ Tests/TextExtractorTests/
   HTMLTextExtractorTests.swift
   RTFTextExtractorTests.swift
   DOCXTextExtractorTests.swift
+  DOCXSemanticsTests.swift
   DOCXFailureTests.swift
   StringDecoderTests.swift
   StringNormalizerTests.swift
   SecurityAndLimitsTests.swift
+  Phase1SafetyTests.swift
+  Phase5MutationTests.swift
+  Phase5ReliabilityTests.swift
+  Phase5BenchmarkTests.swift
   FixtureCorpusTests.swift
   FixtureSupport.swift
 ```
 
-Keep extractor-specific assertions in the corresponding test file. Cross-format coordinator behavior and global limits belong in `CoordinatorTests` or `SecurityAndLimitsTests`.
+Keep extractor-specific assertions in the corresponding test file. Cross-format coordinator behavior and global limits belong in `CoordinatorTests`, `APIContractTests`, or `SecurityAndLimitsTests` as appropriate.
+
+`FixtureSupport` is the shared home for repository fixture discovery, temporary archive creation, archive cleanup, and temp-directory inspection. DOCX/ZIP-based tests should reuse these helpers rather than carrying local ZIPFoundation fixture builders; this keeps entry ordering, cleanup, and ZIP API usage consistent across the suite.
 
 ## Fixture corpus
 
@@ -96,7 +109,8 @@ Before merging a parser behavior change:
 
 - add or update focused tests
 - add a regression fixture when useful
-- run `swift test`
+- reuse shared `FixtureSupport` utilities instead of duplicating fixture infrastructure
+- run `swift test --parallel`
 - run `swift build -c release`
 - ensure the demo still builds
 - verify no unrelated fixture output regressed

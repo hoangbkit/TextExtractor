@@ -22,7 +22,7 @@ final class APIContractTests: XCTestCase {
     }
 
     func testCustomExtractorArrayReplacesDefaults() {
-        let extractor = TextExtractor(extractors: [MarkerExtractor(marker: "custom")])
+        let extractor = TextExtractor(extractors: [MarkerExtractor(marker: "custom", canExtractResult: false)])
         XCTAssertThrowsError(try extractor.extract(data: Data("# heading".utf8), fileName: "note.md")) { error in
             guard case TextExtractionError.unsupportedFileType = error else {
                 return XCTFail("Expected unsupportedFileType, got \(error)")

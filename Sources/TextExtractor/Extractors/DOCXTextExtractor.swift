@@ -4,33 +4,20 @@ import ZIPFoundation
 public struct DOCXTextExtractor: TextFormatExtractor {
     public let format: TextExtractionFormat = .docx
     public let supportedFileExtensions: Set<String> = TextExtractionFormat.docx.fileExtensions
-
     public init() {}
 
     public func canExtract(data: Data, fileName: String?) -> Bool {
-        if let ext = FileName.fileExtension(from: fileName), supportedFileExtensions.contains(ext) {
-            return true
-        }
-
+        if let ext = FileName.fileExtension(from: fileName), supportedFileExtensions.contains(ext) { return true }
         guard data.starts(with: [0x50, 0x4B]) else { return false }
-
         do {
             let archive = try Archive(data: data, accessMode: .read)
             return archive["word/document.xml"] != nil
-        } catch {
-            return false
-        }
+        } catch { return false }
     }
 
-    public func extract(
-        data: Data,
-        fileName: String?,
-        sourceURL: URL?,
-        options: TextExtractionOptions
-    ) throws -> ExtractedTextDocument {
+    public func extract(data: Data, fileName: String?, sourceURL: URL?, options: TextExtractionOptions) throws -> ExtractedTextDocument {
         let archive = try openArchive(data: data, sourceURL: sourceURL)
         try validateArchiveEntryCount(archive, options: options)
-
         var budget = DOCXArchiveBudget(options: options)
         guard let documentXML = try readEntry("word/document.xml", in: archive, budget: &budget) else {
             throw TextExtractionError.invalidDocument(reason: "Missing word/document.xml.")
@@ -38,96 +25,62 @@ public struct DOCXTextExtractor: TextFormatExtractor {
 
         var paragraphs: [String] = []
         var warnings: [TextExtractionWarning] = []
-
         do {
             paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: documentXML))
         } catch {
-            throw TextExtractionError.invalidDocument(reason: "Could not parse word/document.xml: \(error.localizedDescription)")
+            throw TextExtractionError.invalidDocument(reason: "Could not parse word/document.xml.")
         }
 
-        if options.includeDOCXFootnotes,
-           let footnotes = try readEntry("word/footnotes.xml", in: archive, budget: &budget) {
-            do {
-                let footnoteText = try DOCXXMLTextParser.parseParagraphs(from: footnotes)
-                if !footnoteText.isEmpty {
-                    paragraphs.append(contentsOf: footnoteText)
-                }
-            } catch {
-                warnings.append(TextExtractionWarning("Could not parse DOCX footnotes."))
-            }
+        if options.includeDOCXFootnotes, let data = try readEntry("word/footnotes.xml", in: archive, budget: &budget) {
+            do { paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: data)) }
+            catch { warnings.append(TextExtractionWarning(code: .skippedDOCXFootnotes, message: "Could not parse DOCX footnotes.")) }
         }
-
-        if options.includeDOCXEndnotes,
-           let endnotes = try readEntry("word/endnotes.xml", in: archive, budget: &budget) {
-            do {
-                let endnoteText = try DOCXXMLTextParser.parseParagraphs(from: endnotes)
-                if !endnoteText.isEmpty {
-                    paragraphs.append(contentsOf: endnoteText)
-                }
-            } catch {
-                warnings.append(TextExtractionWarning("Could not parse DOCX endnotes."))
-            }
+        if options.includeDOCXEndnotes, let data = try readEntry("word/endnotes.xml", in: archive, budget: &budget) {
+            do { paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: data)) }
+            catch { warnings.append(TextExtractionWarning(code: .skippedDOCXEndnotes, message: "Could not parse DOCX endnotes.")) }
         }
-
         if options.includeDOCXHeadersAndFooters {
             for entry in archive {
                 let path = entry.path.lowercased()
                 guard path.hasPrefix("word/header") || path.hasPrefix("word/footer") else { continue }
-                guard let entryData = try readEntry(entry.path, in: archive, budget: &budget) else { continue }
-                do {
-                    paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: entryData))
-                } catch {
-                    warnings.append(TextExtractionWarning("Could not parse \(entry.path)."))
+                guard let data = try readEntry(entry.path, in: archive, budget: &budget) else { continue }
+                do { paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: data)) }
+                catch {
+                    let code: TextExtractionWarning.Code = path.hasPrefix("word/header") ? .skippedDOCXHeader : .skippedDOCXFooter
+                    warnings.append(TextExtractionWarning(code: code, message: "Could not parse \(entry.path)."))
                 }
             }
         }
 
         var text = StringNormalizer.joinParagraphs(paragraphs, separator: options.paragraphSeparator)
         text = StringNormalizer.normalize(text, options: options)
-
         return ExtractedTextDocument(
-            title: FileName.title(from: fileName, sourceURL: sourceURL),
-            sourceURL: sourceURL,
-            format: format,
-            text: text,
-            metadata: [
-                "container": "OOXML",
-                "expandedArchiveBytes": String(budget.expandedBytes)
-            ],
+            title: FileName.title(from: fileName, sourceURL: sourceURL), sourceURL: sourceURL,
+            format: format, text: text,
+            metadata: ["container": "OOXML", "expandedArchiveBytes": String(budget.expandedBytes)],
             warnings: warnings
         )
     }
 
     private func openArchive(data: Data, sourceURL: URL?) throws -> Archive {
         do {
-            if let sourceURL {
-                return try Archive(url: sourceURL, accessMode: .read)
-            }
+            if let sourceURL { return try Archive(url: sourceURL, accessMode: .read) }
             return try Archive(data: data, accessMode: .read)
-        } catch {
-            throw TextExtractionError.invalidDocument(reason: "Could not open DOCX ZIP archive.")
-        }
+        } catch { throw TextExtractionError.invalidDocument(reason: "Could not open DOCX ZIP archive.") }
     }
 
     private func validateArchiveEntryCount(_ archive: Archive, options: TextExtractionOptions) throws {
         let maxCount = max(0, options.maxArchiveEntryCount)
         var count = 0
-
         for _ in archive {
             count += 1
             if count > maxCount {
-                throw TextExtractionError.invalidDocument(
-                    reason: "DOCX archive entry count exceeds maxArchiveEntryCount (\(maxCount))."
-                )
+                throw TextExtractionError.invalidDocument(reason: "DOCX archive entry count exceeds maxArchiveEntryCount (\(maxCount)).")
             }
         }
     }
 
-    private func readEntry(
-        _ path: String,
-        in archive: Archive,
-        budget: inout DOCXArchiveBudget
-    ) throws -> Data? {
+    private func readEntry(_ path: String, in archive: Archive, budget: inout DOCXArchiveBudget) throws -> Data? {
         guard let entry = archive[path] else { return nil }
         guard entry.type == .file else {
             throw TextExtractionError.invalidDocument(reason: "DOCX archive entry is not a regular file: \(path).")
@@ -148,45 +101,35 @@ private struct DOCXArchiveBudget {
 
     mutating func extract(_ entry: Entry, from archive: Archive) throws -> Data {
         guard entry.uncompressedSize <= maxEntryBytes else {
-            throw TextExtractionError.invalidDocument(
-                reason: "DOCX archive entry exceeds maxArchiveEntryBytes: \(entry.path) expands to \(entry.uncompressedSize) bytes, max \(maxEntryBytes)."
-            )
+            throw TextExtractionError.invalidDocument(reason: "DOCX archive entry exceeds maxArchiveEntryBytes: \(entry.path) expands to \(entry.uncompressedSize) bytes, max \(maxEntryBytes).")
         }
-
-        guard expandedBytes <= maxExpandedBytes,
-              entry.uncompressedSize <= maxExpandedBytes - expandedBytes else {
-            throw TextExtractionError.invalidDocument(
-                reason: "DOCX expanded content exceeds maxExpandedArchiveBytes (\(maxExpandedBytes))."
-            )
+        guard expandedBytes <= maxExpandedBytes, entry.uncompressedSize <= maxExpandedBytes - expandedBytes else {
+            throw TextExtractionError.invalidDocument(reason: "DOCX expanded content exceeds maxExpandedArchiveBytes (\(maxExpandedBytes)).")
         }
 
         let remainingExpandedBytes = maxExpandedBytes - expandedBytes
         var actualEntryBytes: UInt64 = 0
         var data = Data()
-
-        _ = try archive.extract(entry) { chunk in
-            let chunkBytes = UInt64(chunk.count)
-            guard actualEntryBytes <= UInt64.max - chunkBytes else {
-                throw TextExtractionError.invalidDocument(reason: "DOCX archive entry size overflow: \(entry.path).")
+        do {
+            _ = try archive.extract(entry) { chunk in
+                let chunkBytes = UInt64(chunk.count)
+                guard actualEntryBytes <= UInt64.max - chunkBytes else {
+                    throw TextExtractionError.invalidDocument(reason: "DOCX archive entry size overflow: \(entry.path).")
+                }
+                actualEntryBytes += chunkBytes
+                guard actualEntryBytes <= maxEntryBytes else {
+                    throw TextExtractionError.invalidDocument(reason: "DOCX archive entry exceeds maxArchiveEntryBytes while extracting: \(entry.path).")
+                }
+                guard actualEntryBytes <= remainingExpandedBytes else {
+                    throw TextExtractionError.invalidDocument(reason: "DOCX expanded content exceeds maxExpandedArchiveBytes while extracting.")
+                }
+                data.append(chunk)
             }
-
-            actualEntryBytes += chunkBytes
-
-            guard actualEntryBytes <= maxEntryBytes else {
-                throw TextExtractionError.invalidDocument(
-                    reason: "DOCX archive entry exceeds maxArchiveEntryBytes while extracting: \(entry.path)."
-                )
-            }
-
-            guard actualEntryBytes <= remainingExpandedBytes else {
-                throw TextExtractionError.invalidDocument(
-                    reason: "DOCX expanded content exceeds maxExpandedArchiveBytes while extracting."
-                )
-            }
-
-            data.append(chunk)
+        } catch let error as TextExtractionError {
+            throw error
+        } catch {
+            throw TextExtractionError.invalidDocument(reason: "Could not extract DOCX archive entry: \(entry.path).")
         }
-
         expandedBytes += actualEntryBytes
         return data
     }

@@ -8,7 +8,6 @@ import UIKit
 public struct RTFTextExtractor: TextFormatExtractor {
     public let format: TextExtractionFormat = .rtf
     public let supportedFileExtensions: Set<String> = TextExtractionFormat.rtf.fileExtensions
-
     public init() {}
 
     public func canExtract(data: Data, fileName: String?) -> Bool {
@@ -16,25 +15,23 @@ public struct RTFTextExtractor: TextFormatExtractor {
         return supportedFileExtensions.contains(ext)
     }
 
-    public func extract(
-        data: Data,
-        fileName: String?,
-        sourceURL: URL?,
-        options: TextExtractionOptions
-    ) throws -> ExtractedTextDocument {
+    public func extract(data: Data, fileName: String?, sourceURL: URL?, options: TextExtractionOptions) throws -> ExtractedTextDocument {
         #if canImport(AppKit) || canImport(UIKit)
-        let attributed = try NSAttributedString(
-            data: data,
-            options: [.documentType: NSAttributedString.DocumentType.rtf],
-            documentAttributes: nil
-        )
-        let text = StringNormalizer.normalize(attributed.string, options: options)
-
+        let attributed: NSAttributedString
+        do {
+            attributed = try NSAttributedString(
+                data: data,
+                options: [.documentType: NSAttributedString.DocumentType.rtf],
+                documentAttributes: nil
+            )
+        } catch {
+            throw TextExtractionError.invalidDocument(reason: "Could not parse RTF document.")
+        }
         return ExtractedTextDocument(
             title: FileName.title(from: fileName, sourceURL: sourceURL),
             sourceURL: sourceURL,
             format: format,
-            text: text
+            text: StringNormalizer.normalize(attributed.string, options: options)
         )
         #else
         throw TextExtractionError.unsupportedOnCurrentPlatform(format: .rtf)

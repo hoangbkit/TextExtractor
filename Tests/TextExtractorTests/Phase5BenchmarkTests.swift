@@ -1,6 +1,5 @@
 import Foundation
 import XCTest
-import ZIPFoundation
 
 @testable import TextExtractor
 
@@ -57,30 +56,12 @@ final class Phase5BenchmarkTests: XCTestCase {
     }
 
     private func makeDOCXData(bodyText: String) throws -> Data {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TextExtractorBenchmark-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-
-        let url = directory.appendingPathComponent("benchmark.docx")
-        let archive = try Archive(url: url, accessMode: .create)
-
         let xml = """
         <?xml version="1.0" encoding="UTF-8"?>
         <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
           <w:body><w:p><w:r><w:t>\(bodyText)</w:t></w:r></w:p></w:body>
         </w:document>
         """
-        let data = Data(xml.utf8)
-        try archive.addEntry(
-            with: "word/document.xml",
-            type: .file,
-            uncompressedSize: Int64(data.count),
-            compressionMethod: .deflate
-        ) { position, size in
-            let start = Int(position)
-            return data.subdata(in: start..<(start + size))
-        }
-        return try Data(contentsOf: url)
+        return try FixtureSupport.makeArchiveData(entries: ["word/document.xml": xml])
     }
 }

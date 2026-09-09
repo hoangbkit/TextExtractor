@@ -63,9 +63,7 @@ final class Phase5BenchmarkTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let url = directory.appendingPathComponent("benchmark.docx")
-        guard let archive = Archive(url: url, accessMode: .create) else {
-            throw NSError(domain: "TextExtractorBenchmark", code: 1)
-        }
+        let archive = try Archive(url: url, accessMode: .create)
 
         let xml = """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -77,7 +75,7 @@ final class Phase5BenchmarkTests: XCTestCase {
         try archive.addEntry(
             with: "word/document.xml",
             type: .file,
-            uncompressedSize: UInt32(data.count),
+            uncompressedSize: Int64(data.count),
             compressionMethod: .deflate
         ) { position, size in
             let start = Int(position)

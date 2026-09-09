@@ -1,6 +1,5 @@
 import Foundation
 import XCTest
-import ZIPFoundation
 
 @testable import TextExtractor
 
@@ -61,7 +60,7 @@ final class Phase5ReliabilityTests: XCTestCase {
     func testLargePermittedDOCXStaysWithinArchiveBudget() throws {
         let repeated = String(repeating: "Large but permitted DOCX content. ", count: 8_000)
         let xml = documentXML(text: repeated)
-        let data = try makeArchiveData(entries: ["word/document.xml": xml])
+        let data = try FixtureSupport.makeArchiveData(entries: ["word/document.xml": xml])
 
         var options = TextExtractionOptions()
         options.maxArchiveEntryBytes = Data(xml.utf8).count + 1_024
@@ -76,8 +75,8 @@ final class Phase5ReliabilityTests: XCTestCase {
     func testRepeatedExtractionIsDeterministicAndDoesNotLeakTemporaryDirectories() throws {
         let extractor = TextExtractor()
         let markdown = Data("# Repeat\n\nThis is **stable** text.".utf8)
-        let docx = try makeArchiveData(entries: ["word/document.xml": documentXML(text: "Repeated DOCX")])
-        let before = try textExtractorTemporaryDirectories()
+        let docx = try FixtureSupport.makeArchiveData(entries: ["word/document.xml": documentXML(text: "Repeated DOCX")])
+        let before = try FixtureSupport.textExtractorTemporaryDirectories()
 
         var markdownOutputs = Set<String>()
         var docxOutputs = Set<String>()
@@ -88,7 +87,7 @@ final class Phase5ReliabilityTests: XCTestCase {
             docxOutputs.insert(try extractor.extract(data: docx, fileName: "repeat.docx").text)
         }
 
-        let after = try textExtractorTemporaryDirectories()
+        let after = try FixtureSupport.textExtractorTemporaryDirectories()
         XCTAssertEqual(markdownOutputs, ["Repeat\n\nThis is stable text."])
         XCTAssertEqual(docxOutputs, ["Repeated DOCX"])
         XCTAssertEqual(after, before)
@@ -116,30 +115,6 @@ final class Phase5ReliabilityTests: XCTestCase {
         XCTAssertEqual(Set(outputs), ["Concurrent\n\nShared coordinator extraction."])
     }
 
-    private func makeArchiveData(entries: [String: String]) throws -> Data {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TextExtractorPhase5Reliability-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-
-        let url = directory.appendingPathComponent("fixture.docx")
-        let archive = try Archive(url: url, accessMode: .create)
-
-        for path in entries.keys.sorted() {
-            let entryData = Data((entries[path] ?? "").utf8)
-            try archive.addEntry(
-                with: path,
-                type: .file,
-                uncompressedSize: Int64(entryData.count),
-                compressionMethod: .deflate
-            ) { position, size in
-                let start = Int(position)
-                return entryData.subdata(in: start..<(start + size))
-            }
-        }
-        return try Data(contentsOf: url)
-    }
-
     private func documentXML(text: String) -> String {
         """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -147,18 +122,5 @@ final class Phase5ReliabilityTests: XCTestCase {
           <w:body><w:p><w:r><w:t>\(text)</w:t></w:r></w:p></w:body>
         </w:document>
         """
-    }
-
-    private func textExtractorTemporaryDirectories() throws -> Set<String> {
-        let urls = try FileManager.default.contentsOfDirectory(
-            at: FileManager.default.temporaryDirectory,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        )
-        return Set(urls.compactMap { url in
-            guard url.lastPathComponent.hasPrefix("TextExtractor-") else { return nil }
-            guard (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { return nil }
-            return url.lastPathComponent
-        })
     }
 }

@@ -1,6 +1,5 @@
 import Foundation
 import XCTest
-import ZIPFoundation
 
 @testable import TextExtractor
 
@@ -55,7 +54,7 @@ final class Phase5MutationTests: XCTestCase {
         ]
 
         for (index, xml) in malformedDocuments.enumerated() {
-            let data = try makeArchiveData(entries: ["word/document.xml": xml])
+            let data = try FixtureSupport.makeArchiveData(entries: ["word/document.xml": xml])
             do {
                 _ = try TextExtractor().extract(data: data, fileName: "mutated-\(index).docx")
             } catch let error as TextExtractionError {
@@ -79,7 +78,7 @@ final class Phase5MutationTests: XCTestCase {
         ]
 
         for (index, footnotes) in optionalMutations.enumerated() {
-            let data = try makeArchiveData(entries: [
+            let data = try FixtureSupport.makeArchiveData(entries: [
                 "word/document.xml": documentXML(text: "Body remains readable"),
                 "word/footnotes.xml": footnotes
             ])
@@ -143,30 +142,6 @@ final class Phase5MutationTests: XCTestCase {
         } catch {
             XCTFail("\(label) leaked non-package error: \(error)")
         }
-    }
-
-    private func makeArchiveData(entries: [String: String]) throws -> Data {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TextExtractorPhase5Mutation-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-
-        let url = directory.appendingPathComponent("fixture.docx")
-        let archive = try Archive(url: url, accessMode: .create)
-
-        for path in entries.keys.sorted() {
-            let entryData = Data((entries[path] ?? "").utf8)
-            try archive.addEntry(
-                with: path,
-                type: .file,
-                uncompressedSize: Int64(entryData.count),
-                compressionMethod: .deflate
-            ) { position, size in
-                let start = Int(position)
-                return entryData.subdata(in: start..<(start + size))
-            }
-        }
-        return try Data(contentsOf: url)
     }
 
     private func documentXML(text: String) -> String {

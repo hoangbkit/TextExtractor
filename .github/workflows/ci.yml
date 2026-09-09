@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: text-extractor-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS package + demo
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Toolchain info
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Run package tests
+        run: swift test --parallel
+
+      - name: Build package (release)
+        run: swift build -c release
+
+      - name: Build demo app
+        run: |
+          xcodebuild \
+            -scheme TextExtractorDemo \
+            -project Examples/TextExtractorDemo/TextExtractorDemo.xcodeproj \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/TextExtractorDemoDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build

@@ -47,7 +47,7 @@ final class DOCXTextExtractorTests: XCTestCase {
 
         XCTAssertEqual(document.format, .docx)
         XCTAssertTrue(document.text.contains("Hello DOCX."))
-        XCTAssertTrue(document.text.contains("Second paragraph with tab."))
+        XCTAssertTrue(document.text.contains("Second paragraph\twith tab."))
         XCTAssertTrue(document.text.contains("Cell A"))
         XCTAssertTrue(document.text.contains("Cell B"))
         XCTAssertTrue(document.text.contains("Footnote text."))

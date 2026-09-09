@@ -152,16 +152,14 @@ final class Phase5MutationTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let url = directory.appendingPathComponent("fixture.docx")
-        guard let archive = Archive(url: url, accessMode: .create) else {
-            throw NSError(domain: "TextExtractorPhase5Mutation", code: 1)
-        }
+        let archive = try Archive(url: url, accessMode: .create)
 
         for path in entries.keys.sorted() {
             let entryData = Data((entries[path] ?? "").utf8)
             try archive.addEntry(
                 with: path,
                 type: .file,
-                uncompressedSize: UInt32(entryData.count),
+                uncompressedSize: Int64(entryData.count),
                 compressionMethod: .deflate
             ) { position, size in
                 let start = Int(position)

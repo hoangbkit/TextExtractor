@@ -23,10 +23,7 @@ public enum TextExtractionFormat: String, CaseIterable, Sendable, Equatable {
 }
 
 public enum MarkdownExtractionMode: Sendable, Equatable {
-    /// Keep the original Markdown mostly intact. Useful when another cleaner/LLM handles cleanup.
     case raw
-
-    /// Convert common Markdown syntax into speech-friendly readable text.
     case readableText
 }
 
@@ -36,24 +33,15 @@ public struct TextExtractionOptions: Sendable, Equatable {
     public var preserveParagraphs: Bool
     public var paragraphSeparator: String
     public var startAccessingSecurityScopedResource: Bool
-
     public var markdownMode: MarkdownExtractionMode
     public var dropMarkdownCodeBlocks: Bool
-
     public var removeDuplicateSubtitleLines: Bool
     public var subtitleCueSeparator: String
-
     public var includeDOCXFootnotes: Bool
     public var includeDOCXEndnotes: Bool
     public var includeDOCXHeadersAndFooters: Bool
-
-    /// Maximum uncompressed size of any single archive entry loaded by an archive-backed extractor.
     public var maxArchiveEntryBytes: Int
-
-    /// Maximum cumulative uncompressed bytes loaded from an archive during one extraction.
     public var maxExpandedArchiveBytes: Int
-
-    /// Maximum number of entries accepted in an archive container.
     public var maxArchiveEntryCount: Int
 
     public init(
@@ -114,9 +102,27 @@ public struct ExtractedTextSegment: Sendable, Equatable, Identifiable {
 }
 
 public struct TextExtractionWarning: Sendable, Equatable, CustomStringConvertible {
+    public enum Code: String, Sendable, Equatable {
+        case unspecified
+        case malformedSubtitleTimestamp
+        case skippedDOCXFootnotes
+        case skippedDOCXEndnotes
+        case skippedDOCXHeader
+        case skippedDOCXFooter
+        case unsupportedDOCXFeature
+        case lossyEncodingFallback
+    }
+
+    public var code: Code
     public var message: String
 
-    public init(_ message: String) {
+    public init(_ message: String, code: Code = .unspecified) {
+        self.code = code
+        self.message = message
+    }
+
+    public init(code: Code, message: String) {
+        self.code = code
         self.message = message
     }
 

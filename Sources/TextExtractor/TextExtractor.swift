@@ -29,7 +29,13 @@ public final class TextExtractor: @unchecked Sendable {
             if didAccess { url.stopAccessingSecurityScopedResource() }
         }
 
-        let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+        let values: URLResourceValues
+        do {
+            values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+        } catch {
+            throw TextExtractionError.invalidDocument(reason: "Could not access file metadata.")
+        }
+
         if values.isRegularFile == false {
             throw TextExtractionError.invalidDocument(reason: "URL is not a regular file.")
         }
@@ -38,7 +44,13 @@ public final class TextExtractor: @unchecked Sendable {
             throw TextExtractionError.fileTooLarge(actualBytes: size, maxBytes: options.maxInputBytes)
         }
 
-        let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+        let data: Data
+        do {
+            data = try Data(contentsOf: url, options: [.mappedIfSafe])
+        } catch {
+            throw TextExtractionError.invalidDocument(reason: "Could not read file contents.")
+        }
+
         return try extract(data: data, fileName: url.lastPathComponent, sourceURL: url, options: options)
     }
 

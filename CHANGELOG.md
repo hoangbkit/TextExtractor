@@ -8,7 +8,10 @@ The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 
 ### Added
 
-- CI verification for package tests, release builds, and the macOS demo app.
+- CI verification for package tests, release builds, and generated demo apps.
+- macOS CI coverage on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26 GitHub-hosted runners.
+- An iOS 26+ SwiftUI demo app built for the iOS Simulator in CI.
+- XcodeGen project specifications for both demo apps; generated `.xcodeproj` directories are not committed.
 - Automated coverage for the existing short/medium/long fixture corpus.
 - DOCX archive expansion limits for individual entries, cumulative selected content, and archive entry count.
 - Machine-readable `TextExtractionWarning.Code` values.
@@ -20,6 +23,7 @@ The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 
 ### Changed
 
+- Minimum supported platforms are now macOS 15 and iOS 26.
 - DOCX content sniffing now verifies that a ZIP contains `word/document.xml` rather than treating every ZIP as DOCX.
 - Data-based DOCX extraction reads from an in-memory archive rather than materializing temporary package directories.
 - Text decoding rejects likely binary payloads before permissive legacy fallbacks.
@@ -44,6 +48,7 @@ The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 ### Compatibility notes
 
 - Existing primary public entry points remain source-compatible.
+- The platform minimum increase to macOS 15 / iOS 26 is a deployment compatibility change and must be considered when choosing the first release version.
 - Archive safety options are additive and defaulted.
 - Warning codes are additive; the legacy message-only warning initializer remains available.
 - No PDF or EPUB support is included.

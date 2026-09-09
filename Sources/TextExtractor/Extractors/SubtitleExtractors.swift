@@ -90,7 +90,7 @@ enum SubtitleParser {
             }
 
             guard let timeLineIndex = lines.firstIndex(where: { $0.contains("-->") }) else { continue }
-            let cueID: String = timeLineIndex > 0 ? lines[timeLineIndex - 1] : String(autoID)
+            let sourceCueID = timeLineIndex > 0 ? lines[timeLineIndex - 1] : nil
             let timeLine = lines[timeLineIndex]
             let textLines = Array(lines.dropFirst(timeLineIndex + 1))
 
@@ -98,13 +98,17 @@ enum SubtitleParser {
             guard !text.isEmpty else { continue }
 
             let times = parseTimeLine(timeLine)
+            var metadata = ["format": format.rawValue]
+            if let sourceCueID, !sourceCueID.isEmpty {
+                metadata["sourceCueID"] = sourceCueID
+            }
             segments.append(
                 ExtractedTextSegment(
-                    id: cueID.isEmpty ? String(autoID) : cueID,
+                    id: "\(format.rawValue)-\(autoID)",
                     text: text,
                     startTime: times.start,
                     endTime: times.end,
-                    metadata: ["format": format.rawValue]
+                    metadata: metadata
                 )
             )
             autoID += 1

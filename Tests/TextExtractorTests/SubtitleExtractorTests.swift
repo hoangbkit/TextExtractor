@@ -19,6 +19,8 @@ final class SubtitleExtractorTests: XCTestCase {
 
         XCTAssertEqual(document.format, .srt)
         XCTAssertEqual(document.segments.count, 2)
+        XCTAssertEqual(document.segments[0].id, "srt-1")
+        XCTAssertEqual(document.segments[0].metadata["sourceCueID"], "1")
         XCTAssertEqual(document.segments[0].text, "Hello world.")
         XCTAssertEqual(try XCTUnwrap(document.segments[0].startTime), 1.0, accuracy: 0.001)
         XCTAssertEqual(try XCTUnwrap(document.segments[0].endTime), 3.5, accuracy: 0.001)
@@ -44,9 +46,28 @@ final class SubtitleExtractorTests: XCTestCase {
 
         XCTAssertEqual(document.format, .vtt)
         XCTAssertEqual(document.segments.count, 2, "Consecutive duplicate subtitles should be removed by default.")
-        XCTAssertEqual(document.segments[0].id, "intro")
+        XCTAssertEqual(document.segments[0].id, "vtt-1")
+        XCTAssertEqual(document.segments[0].metadata["sourceCueID"], "intro")
         XCTAssertEqual(document.segments[0].text, "Welcome & hello.")
         XCTAssertEqual(document.segments[1].text, "Next line.")
+    }
+
+    func testRepeatedSourceCueIDsStillProduceUniqueSegmentIDs() throws {
+        let srt = """
+        same
+        00:00:01,000 --> 00:00:02,000
+        First.
+
+        same
+        00:00:03,000 --> 00:00:04,000
+        Second.
+        """
+
+        let document = try TextExtractor().extract(data: Data(srt.utf8), fileName: "repeat.srt")
+
+        XCTAssertEqual(document.segments.map(\.id), ["srt-1", "srt-2"])
+        XCTAssertEqual(Set(document.segments.map(\.id)).count, 2)
+        XCTAssertEqual(document.segments.map { $0.metadata["sourceCueID"] }, ["same", "same"])
     }
 
     func testSRTWithoutCuesFailsAsEmptyDocument() {

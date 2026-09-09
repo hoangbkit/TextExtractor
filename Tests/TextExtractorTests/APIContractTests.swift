@@ -36,6 +36,37 @@ final class APIContractTests: XCTestCase {
         XCTAssertEqual(warning.message, "Legacy warning")
         XCTAssertEqual(warning.description, "Legacy warning")
     }
+
+    func testDefaultOptionsRemainReleaseCompatible() {
+        let options = TextExtractionOptions()
+
+        XCTAssertEqual(options.maxInputBytes, 50 * 1024 * 1024)
+        XCTAssertTrue(options.normalizeWhitespace)
+        XCTAssertTrue(options.preserveParagraphs)
+        XCTAssertEqual(options.paragraphSeparator, "\n\n")
+        XCTAssertTrue(options.startAccessingSecurityScopedResource)
+        XCTAssertEqual(options.markdownMode, .readableText)
+        XCTAssertTrue(options.dropMarkdownCodeBlocks)
+        XCTAssertTrue(options.removeDuplicateSubtitleLines)
+        XCTAssertEqual(options.subtitleCueSeparator, "\n")
+        XCTAssertTrue(options.includeDOCXFootnotes)
+        XCTAssertTrue(options.includeDOCXEndnotes)
+        XCTAssertFalse(options.includeDOCXHeadersAndFooters)
+        XCTAssertEqual(options.maxArchiveEntryBytes, 64 * 1024 * 1024)
+        XCTAssertEqual(options.maxExpandedArchiveBytes, 128 * 1024 * 1024)
+        XCTAssertEqual(options.maxArchiveEntryCount, 2_048)
+    }
+
+    func testWarningCodeRawValuesRemainStable() {
+        XCTAssertEqual(TextExtractionWarning.Code.unspecified.rawValue, "unspecified")
+        XCTAssertEqual(TextExtractionWarning.Code.malformedSubtitleTimestamp.rawValue, "malformedSubtitleTimestamp")
+        XCTAssertEqual(TextExtractionWarning.Code.skippedDOCXFootnotes.rawValue, "skippedDOCXFootnotes")
+        XCTAssertEqual(TextExtractionWarning.Code.skippedDOCXEndnotes.rawValue, "skippedDOCXEndnotes")
+        XCTAssertEqual(TextExtractionWarning.Code.skippedDOCXHeader.rawValue, "skippedDOCXHeader")
+        XCTAssertEqual(TextExtractionWarning.Code.skippedDOCXFooter.rawValue, "skippedDOCXFooter")
+        XCTAssertEqual(TextExtractionWarning.Code.unsupportedDOCXFeature.rawValue, "unsupportedDOCXFeature")
+        XCTAssertEqual(TextExtractionWarning.Code.lossyEncodingFallback.rawValue, "lossyEncodingFallback")
+    }
 }
 
 private struct MarkerExtractor: TextFormatExtractor {

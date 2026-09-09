@@ -43,7 +43,7 @@ final class MarkdownTextExtractorTests: XCTestCase {
         <https://example.com/raw>
         <mailto:hello@example.com>
 
-        \*literal stars\*
+        \\*literal stars\\*
         """
         let document = try TextExtractor().extract(data: Data(markdown.utf8), fileName: "cases.md")
         XCTAssertTrue(document.text.contains("Setext title"))

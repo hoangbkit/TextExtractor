@@ -5,9 +5,11 @@ Use this checklist for every tagged TextExtractor release and every standalone-t
 ## 1. Standalone package gate
 
 - [ ] PR scope matches the intended release.
-- [ ] `swift test --parallel` passes.
-- [ ] `swift build -c release` passes.
-- [ ] macOS demo app builds with code signing disabled.
+- [ ] `swift test --parallel` passes on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26 CI runners.
+- [ ] `swift build -c release` passes on the same three macOS runners.
+- [ ] macOS demo is regenerated from XcodeGen and builds with code signing disabled on all three macOS runners.
+- [ ] iOS demo is regenerated from XcodeGen and builds for an iOS Simulator on the Apple Silicon macOS 26 runner.
+- [ ] No generated `.xcodeproj` directory is committed.
 - [ ] Fixture corpus is green for every supported format.
 - [ ] Mutation, boundary, repeat-extraction, and concurrency tests are green.
 - [ ] Any relevant opt-in performance benchmark has been sampled for material parser changes.
@@ -17,7 +19,8 @@ Use this checklist for every tagged TextExtractor release and every standalone-t
 
 - [ ] Review public API changes against `docs/API_CONTRACTS.md`.
 - [ ] Review default `TextExtractionOptions` values.
-- [ ] Review supported formats/extensions and platform minimums.
+- [ ] Confirm package minimums remain macOS 15+ and iOS 26+ unless an intentional SemVer-impacting change is documented.
+- [ ] Review supported formats/extensions.
 - [ ] Review new/changed `TextExtractionError` behavior.
 - [ ] Review new/changed `TextExtractionWarning.Code` values.
 - [ ] Review extractor precedence and custom-extractor behavior.
@@ -28,7 +31,7 @@ Use this checklist for every tagged TextExtractor release and every standalone-t
 ## 3. Release notes and tag
 
 - [ ] Move relevant `CHANGELOG.md` entries from `Unreleased` under the release version/date.
-- [ ] Explicitly call out changed defaults, resource limits, new formats, and material output changes.
+- [ ] Explicitly call out changed defaults, resource limits, platform minimums, new formats, and material output changes.
 - [ ] Confirm the release commit SHA.
 - [ ] Create the version tag only after CI is green on that exact commit.
 
@@ -55,10 +58,10 @@ Spokio consumes a synchronized copy of TextExtractor, so treat package sync as a
 
 ## 6. Final release gate
 
-- [ ] Standalone TextExtractor CI green on the release SHA.
+- [ ] Standalone TextExtractor CI green on the release SHA across the full macOS/iOS demo matrix.
 - [ ] Spokio CI/build/tests green on the synchronized revision.
 - [ ] Representative manual imports look correct.
 - [ ] Changelog and release notes match shipped behavior.
-- [ ] No unreviewed parser/default/resource-limit changes remain.
+- [ ] No unreviewed parser/default/resource-limit/platform changes remain.
 
 If any package behavior changes after Spokio verification, restart the relevant standalone and integration gates rather than reusing earlier results.

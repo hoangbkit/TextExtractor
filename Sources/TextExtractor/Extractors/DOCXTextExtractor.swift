@@ -19,47 +19,154 @@ public struct DOCXTextExtractor: TextFormatExtractor {
         let archive = try openArchive(data: data, sourceURL: sourceURL)
         try validateArchiveEntryCount(archive, options: options)
         var budget = DOCXArchiveBudget(options: options)
+        var warnings: [TextExtractionWarning] = []
+
         guard let documentXML = try readEntry("word/document.xml", in: archive, budget: &budget) else {
             throw TextExtractionError.invalidDocument(reason: "Missing word/document.xml.")
         }
 
-        var paragraphs: [String] = []
-        var warnings: [TextExtractionWarning] = []
+        let bodyBlocks: [DOCXTextBlock]
         do {
-            paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: documentXML))
+            bodyBlocks = try DOCXXMLTextParser.parseBlocks(from: documentXML)
         } catch {
             throw TextExtractionError.invalidDocument(reason: "Could not parse word/document.xml.")
         }
 
-        if options.includeDOCXFootnotes, let data = try readEntry("word/footnotes.xml", in: archive, budget: &budget) {
-            do { paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: data)) }
-            catch { warnings.append(TextExtractionWarning(code: .skippedDOCXFootnotes, message: "Could not parse DOCX footnotes.")) }
+        var numberingDefinition: DOCXNumberingDefinition?
+        if let numberingXML = try readEntry("word/numbering.xml", in: archive, budget: &budget) {
+            do {
+                numberingDefinition = try DOCXNumberingParser.parse(from: numberingXML)
+            } catch {
+                warnings.append(
+                    TextExtractionWarning(
+                        code: .unsupportedDOCXFeature,
+                        message: "Could not parse DOCX numbering definitions; list text was preserved without generated labels."
+                    )
+                )
+            }
         }
-        if options.includeDOCXEndnotes, let data = try readEntry("word/endnotes.xml", in: archive, budget: &budget) {
-            do { paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: data)) }
-            catch { warnings.append(TextExtractionWarning(code: .skippedDOCXEndnotes, message: "Could not parse DOCX endnotes.")) }
+
+        var numberingResolver = numberingDefinition.map(DOCXNumberingResolver.init)
+        var warnedUnsupportedNumbering = false
+        var paragraphs = renderBlocks(
+            bodyBlocks,
+            numberingResolver: &numberingResolver,
+            options: options,
+            warnings: &warnings,
+            warnedUnsupportedNumbering: &warnedUnsupportedNumbering
+        )
+
+        var footnoteParagraphCount = 0
+        if options.includeDOCXFootnotes,
+           let footnotesXML = try readEntry("word/footnotes.xml", in: archive, budget: &budget) {
+            do {
+                let rendered = renderSupplementalBlocks(try DOCXXMLTextParser.parseBlocks(from: footnotesXML), options: options)
+                footnoteParagraphCount = rendered.count
+                paragraphs.append(contentsOf: rendered)
+            } catch {
+                warnings.append(TextExtractionWarning(code: .skippedDOCXFootnotes, message: "Could not parse DOCX footnotes."))
+            }
         }
+
+        var endnoteParagraphCount = 0
+        if options.includeDOCXEndnotes,
+           let endnotesXML = try readEntry("word/endnotes.xml", in: archive, budget: &budget) {
+            do {
+                let rendered = renderSupplementalBlocks(try DOCXXMLTextParser.parseBlocks(from: endnotesXML), options: options)
+                endnoteParagraphCount = rendered.count
+                paragraphs.append(contentsOf: rendered)
+            } catch {
+                warnings.append(TextExtractionWarning(code: .skippedDOCXEndnotes, message: "Could not parse DOCX endnotes."))
+            }
+        }
+
+        var headerFooterParagraphCount = 0
         if options.includeDOCXHeadersAndFooters {
-            for entry in archive {
-                let path = entry.path.lowercased()
-                guard path.hasPrefix("word/header") || path.hasPrefix("word/footer") else { continue }
-                guard let data = try readEntry(entry.path, in: archive, budget: &budget) else { continue }
-                do { paragraphs.append(contentsOf: try DOCXXMLTextParser.parseParagraphs(from: data)) }
-                catch {
-                    let code: TextExtractionWarning.Code = path.hasPrefix("word/header") ? .skippedDOCXHeader : .skippedDOCXFooter
-                    warnings.append(TextExtractionWarning(code: code, message: "Could not parse \(entry.path)."))
+            var seenHeaderFooterText = Set<String>()
+            let paths = archive
+                .map(\.path)
+                .filter {
+                    let path = $0.lowercased()
+                    return path.hasPrefix("word/header") || path.hasPrefix("word/footer")
+                }
+                .sorted()
+
+            for path in paths {
+                guard let partData = try readEntry(path, in: archive, budget: &budget) else { continue }
+                do {
+                    let rendered = renderSupplementalBlocks(try DOCXXMLTextParser.parseBlocks(from: partData), options: options)
+                    for paragraph in rendered where seenHeaderFooterText.insert(paragraph).inserted {
+                        paragraphs.append(paragraph)
+                        headerFooterParagraphCount += 1
+                    }
+                } catch {
+                    let code: TextExtractionWarning.Code = path.lowercased().hasPrefix("word/header") ? .skippedDOCXHeader : .skippedDOCXFooter
+                    warnings.append(TextExtractionWarning(code: code, message: "Could not parse \(path)."))
                 }
             }
         }
 
-        var text = StringNormalizer.joinParagraphs(paragraphs, separator: options.paragraphSeparator)
-        text = StringNormalizer.normalize(text, options: options)
+        let text = paragraphs.joined(separator: options.preserveParagraphs ? options.paragraphSeparator : " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
         return ExtractedTextDocument(
-            title: FileName.title(from: fileName, sourceURL: sourceURL), sourceURL: sourceURL,
-            format: format, text: text,
-            metadata: ["container": "OOXML", "expandedArchiveBytes": String(budget.expandedBytes)],
+            title: FileName.title(from: fileName, sourceURL: sourceURL),
+            sourceURL: sourceURL,
+            format: format,
+            text: text,
+            metadata: [
+                "container": "OOXML",
+                "expandedArchiveBytes": String(budget.expandedBytes),
+                "footnoteParagraphs": String(footnoteParagraphCount),
+                "endnoteParagraphs": String(endnoteParagraphCount),
+                "headerFooterParagraphs": String(headerFooterParagraphCount)
+            ],
             warnings: warnings
         )
+    }
+
+    private func renderBlocks(
+        _ blocks: [DOCXTextBlock],
+        numberingResolver: inout DOCXNumberingResolver?,
+        options: TextExtractionOptions,
+        warnings: inout [TextExtractionWarning],
+        warnedUnsupportedNumbering: inout Bool
+    ) -> [String] {
+        blocks.compactMap { block in
+            var text = block.text
+            if let numID = block.numberingID {
+                let level = block.numberingLevel ?? 0
+                if let label = numberingResolver?.label(numID: numID, level: level), !label.isEmpty {
+                    text = "\(label) \(text)"
+                } else if numberingResolver != nil && !warnedUnsupportedNumbering {
+                    warnings.append(
+                        TextExtractionWarning(
+                            code: .unsupportedDOCXFeature,
+                            message: "One or more DOCX list labels use unsupported or missing numbering definitions; paragraph text was preserved."
+                        )
+                    )
+                    warnedUnsupportedNumbering = true
+                }
+            }
+            let normalized = normalizeDOCXText(text, options: options)
+            return normalized.isEmpty ? nil : normalized
+        }
+    }
+
+    private func renderSupplementalBlocks(_ blocks: [DOCXTextBlock], options: TextExtractionOptions) -> [String] {
+        blocks.compactMap { block in
+            let normalized = normalizeDOCXText(block.text, options: options)
+            return normalized.isEmpty ? nil : normalized
+        }
+    }
+
+    private func normalizeDOCXText(_ text: String, options: TextExtractionOptions) -> String {
+        guard text.contains("\t") else { return StringNormalizer.normalize(text, options: options) }
+        return text
+            .components(separatedBy: "\t")
+            .map { StringNormalizer.normalize($0, options: options) }
+            .joined(separator: "\t")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func openArchive(data: Data, sourceURL: URL?) throws -> Archive {

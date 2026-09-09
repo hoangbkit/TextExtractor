@@ -6,9 +6,11 @@ TextExtractor is designed for macOS and iOS applications that need predictable p
 
 ## Platforms
 
-- macOS 13+
-- iOS 16+
+- macOS 15+
+- iOS 26+
 - Swift tools 5.9+
+
+The package manifest intentionally uses string deployment versions so Swift tools 5.9 can express the iOS 26 minimum while the package remains consumable by the macOS 15 CI toolchain.
 
 ## Supported formats
 
@@ -138,23 +140,55 @@ struct MyExtractor: TextFormatExtractor {
 let extractor = TextExtractor(extractors: [MyExtractor()])
 ```
 
-## Demo app
+## Demo apps
 
-A macOS SwiftUI demo is included at:
+Both demos use XcodeGen. Generated `.xcodeproj` directories are intentionally ignored and must not be committed.
 
-```text
-Examples/TextExtractorDemo/TextExtractorDemo.xcodeproj
+### macOS 15+
+
+```bash
+cd Examples/TextExtractorDemo
+xcodegen generate
+open TextExtractorDemo.xcodeproj
 ```
 
-It imports files, runs extraction away from the main actor, and displays normalized text, segments, metadata, and warnings.
+The macOS demo imports files, browses repository fixtures, runs extraction away from the main actor, and displays normalized text, segments, metadata, and warnings.
+
+### iOS 26+
+
+```bash
+cd Examples/TextExtractorIOSDemo
+xcodegen generate
+open TextExtractorIOSDemo.xcodeproj
+```
+
+The iOS demo exercises in-memory extraction and the system document importer with security-scoped file access.
 
 ## Development
 
-Normal verification:
+Normal package verification:
 
 ```bash
 swift test --parallel
 swift build -c release
+```
+
+Generate/build the macOS demo:
+
+```bash
+make build
+```
+
+Generate/build the iOS demo for the Simulator:
+
+```bash
+make ios-build
+```
+
+Install XcodeGen first when working locally:
+
+```bash
+brew install xcodegen
 ```
 
 Timing benchmarks are opt-in so normal CI does not depend on runner speed:
@@ -162,6 +196,14 @@ Timing benchmarks are opt-in so normal CI does not depend on runner speed:
 ```bash
 TEXTEXTRACTOR_RUN_BENCHMARKS=1 swift test --filter Phase5BenchmarkTests
 ```
+
+CI verifies the package and macOS demo on:
+
+- Intel macOS 15 (`macos-15-intel`)
+- Apple Silicon macOS 15 (`macos-15`)
+- Apple Silicon macOS 26 (`macos-26`)
+
+CI also generates and builds the iOS demo for a generic iOS Simulator destination on the Apple Silicon macOS 26 runner.
 
 See `docs/TESTING.md` for fixture and regression-test guidance.
 

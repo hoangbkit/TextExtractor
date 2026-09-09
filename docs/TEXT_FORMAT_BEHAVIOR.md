@@ -11,13 +11,13 @@ Detection order:
 1. UTF-8 BOM (`utf-8-bom`)
 2. UTF-16 little-endian BOM (`utf-16le-bom`)
 3. UTF-16 big-endian BOM (`utf-16be-bom`)
-4. UTF-8 (`utf-8`)
-5. strongly inferred UTF-16 little-endian (`utf-16le-inferred`)
-6. strongly inferred UTF-16 big-endian (`utf-16be-inferred`)
+4. strongly inferred UTF-16 little-endian (`utf-16le-inferred`)
+5. strongly inferred UTF-16 big-endian (`utf-16be-inferred`)
+6. UTF-8 (`utf-8`)
 7. Windows-1252 (`windows-1252`)
 8. ISO-8859-1 (`iso-8859-1`)
 
-Binary-looking payloads are rejected before permissive legacy decoding. Windows-1252 and ISO-8859-1 are treated as legacy fallbacks and emit the stable `lossyEncodingFallback` warning code.
+The UTF-16 inference step uses a strong alternating-NUL heuristic before UTF-8 decoding so ordinary BOM-less UTF-16 text is not accepted as NUL-filled UTF-8. Binary-looking payloads are rejected before permissive legacy decoding. Windows-1252 and ISO-8859-1 are treated as legacy fallbacks and emit the stable `lossyEncodingFallback` warning code.
 
 ## Markdown
 
@@ -34,7 +34,7 @@ Handled narration cases include:
 - inline code, emphasis, strong emphasis, and strikethrough cleanup
 - reference definitions removed from narration
 - common Markdown tables flattened into readable cell text
-- common escaped Markdown punctuation restored
+- common escaped Markdown punctuation restored without treating escaped emphasis markers as formatting
 
 `MarkdownExtractionMode.raw` remains available when callers want to preserve Markdown syntax.
 

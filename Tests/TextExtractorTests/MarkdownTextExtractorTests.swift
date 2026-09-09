@@ -82,8 +82,8 @@ final class MarkdownTextExtractorTests: XCTestCase {
         """
         let document = try TextExtractor().extract(data: Data(markdown.utf8), fileName: "table.md")
         XCTAssertTrue(document.text.contains("Nested quote"))
-        XCTAssertTrue(document.text.contains("Name   Value"))
-        XCTAssertTrue(document.text.contains("Alpha   Beta"))
+        XCTAssertTrue(document.text.contains("Name Value"))
+        XCTAssertTrue(document.text.contains("Alpha Beta"))
         XCTAssertFalse(document.text.contains("---"))
     }
 

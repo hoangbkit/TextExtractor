@@ -1,11 +1,11 @@
 import Foundation
 import XCTest
-import ZIPFoundation
+
 @testable import TextExtractor
 
 final class DOCXSemanticsTests: XCTestCase {
     func testTablesHaveExactTabAndRowSemanticsInBodyOrder() throws {
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "word/document.xml": documentXML("""
             <w:p><w:r><w:t>Before</w:t></w:r></w:p>
             <w:tbl>
@@ -21,21 +21,21 @@ final class DOCXSemanticsTests: XCTestCase {
             <w:p><w:r><w:t>After</w:t></w:r></w:p>
             """)
         ])
-        defer { removeFixture(url) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let document = try TextExtractor().extract(from: url)
         XCTAssertEqual(document.text, "Before\n\nA1\tB1\n\nA2\tB2\n\nAfter")
     }
 
     func testExplicitTabsAndBreaksArePreserved() throws {
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "word/document.xml": documentXML("""
             <w:p>
               <w:r><w:t>Alpha</w:t><w:tab/><w:t>Beta</w:t><w:br/><w:t>Gamma</w:t></w:r>
             </w:p>
             """)
         ])
-        defer { removeFixture(url) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let document = try TextExtractor().extract(from: url)
         XCTAssertEqual(document.text, "Alpha\tBeta\nGamma")
@@ -61,8 +61,8 @@ final class DOCXSemanticsTests: XCTestCase {
           </x:body>
         </x:document>
         """
-        let url = try makeDOCX(entries: ["word/document.xml": xml])
-        defer { removeFixture(url) }
+        let url = try FixtureSupport.makeArchiveFile(entries: ["word/document.xml": xml])
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let document = try TextExtractor().extract(from: url)
         XCTAssertEqual(document.text, "Visible inserted field-result link-text control-text")
@@ -71,7 +71,7 @@ final class DOCXSemanticsTests: XCTestCase {
     }
 
     func testTextBoxContentIsRetainedWhenReadableTextExists() throws {
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "word/document.xml": documentXML("""
             <w:p>
               <w:r><w:t>Outer</w:t></w:r>
@@ -80,7 +80,7 @@ final class DOCXSemanticsTests: XCTestCase {
             </w:p>
             """)
         ])
-        defer { removeFixture(url) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let document = try TextExtractor().extract(from: url)
         XCTAssertEqual(document.text, "Outer box-text end")
@@ -107,11 +107,11 @@ final class DOCXSemanticsTests: XCTestCase {
         \(numberedParagraph(numID: "10", level: 0, text: "Two"))
         \(numberedParagraph(numID: "11", level: 0, text: "Bullet"))
         """
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "word/document.xml": documentXML(body),
             "word/numbering.xml": numbering
         ])
-        defer { removeFixture(url) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let document = try TextExtractor().extract(from: url)
         XCTAssertEqual(document.text, "1. One\n\n1.1. Child one\n\n1.2. Child two\n\n2. Two\n\n• Bullet")
@@ -130,21 +130,21 @@ final class DOCXSemanticsTests: XCTestCase {
           </w:num>
         </w:numbering>
         """
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "word/document.xml": documentXML(numberedParagraph(numID: "20", level: 0, text: "Starts at five")),
             "word/numbering.xml": numbering
         ])
-        defer { removeFixture(url) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         XCTAssertEqual(try TextExtractor().extract(from: url).text, "5. Starts at five")
     }
 
     func testMalformedNumberingPreservesCleanParagraphTextAndWarns() throws {
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "word/document.xml": documentXML(numberedParagraph(numID: "10", level: 0, text: "Keep me")),
             "word/numbering.xml": "<w:numbering>"
         ])
-        defer { removeFixture(url) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let document = try TextExtractor().extract(from: url)
         XCTAssertEqual(document.text, "Keep me")
@@ -166,12 +166,12 @@ final class DOCXSemanticsTests: XCTestCase {
           <w:endnote w:id="2"><w:p><w:r><w:t>Endnote two</w:t></w:r></w:p></w:endnote>
         </w:endnotes>
         """
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "word/document.xml": documentXML("<w:p><w:r><w:t>Body</w:t></w:r></w:p>"),
             "word/footnotes.xml": footnotes,
             "word/endnotes.xml": endnotes
         ])
-        defer { removeFixture(url) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         let document = try TextExtractor().extract(from: url)
         XCTAssertEqual(document.text, "Body\n\nFootnote two\n\nFootnote three\n\nEndnote two")
@@ -182,14 +182,14 @@ final class DOCXSemanticsTests: XCTestCase {
     }
 
     func testHeadersAndFootersArePathOrderedAndDeduplicated() throws {
-        let url = try makeDOCX(entries: [
+        let url = try FixtureSupport.makeArchiveFile(entries: [
             "word/document.xml": documentXML("<w:p><w:r><w:t>Body</w:t></w:r></w:p>"),
             "word/header2.xml": headerXML("Header B"),
             "word/header1.xml": headerXML("Header A"),
             "word/footer2.xml": footerXML("Footer B"),
             "word/footer1.xml": footerXML("Header A")
         ])
-        defer { removeFixture(url) }
+        defer { FixtureSupport.removeTemporaryFixture(at: url) }
 
         var options = TextExtractionOptions()
         options.includeDOCXHeadersAndFooters = true
@@ -222,31 +222,5 @@ final class DOCXSemanticsTests: XCTestCase {
 
     private func footerXML(_ text: String) -> String {
         "<w:ftr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:r><w:t>\(text)</w:t></w:r></w:p></w:ftr>"
-    }
-
-    private func makeDOCX(entries: [String: String]) throws -> URL {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TextExtractorDOCXSemantics-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let url = directory.appendingPathComponent("fixture.docx")
-        let archive = try Archive(url: url, accessMode: .create)
-
-        for path in entries.keys.sorted() {
-            let data = Data(entries[path]!.utf8)
-            try archive.addEntry(
-                with: path,
-                type: .file,
-                uncompressedSize: Int64(data.count),
-                compressionMethod: .deflate
-            ) { position, size in
-                let start = Int(position)
-                return data.subdata(in: start..<(start + size))
-            }
-        }
-        return url
-    }
-
-    private func removeFixture(_ url: URL) {
-        try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
     }
 }

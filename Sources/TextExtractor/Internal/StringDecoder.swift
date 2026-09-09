@@ -21,11 +21,11 @@ enum StringDecoder {
             return result
         }
 
+        if let result = decodeLikelyUTF16WithoutBOM(data) { return result }
+
         if let string = String(data: data, encoding: .utf8) {
             return DecodedText(string: string, encodingName: "utf-8", usedLegacyFallback: false)
         }
-
-        if let result = decodeLikelyUTF16WithoutBOM(data) { return result }
 
         guard !isLikelyBinary(data) else {
             throw TextExtractionError.unreadableTextEncoding(fileName: fileName)

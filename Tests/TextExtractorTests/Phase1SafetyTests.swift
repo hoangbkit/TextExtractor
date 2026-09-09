@@ -1,13 +1,12 @@
 import Foundation
 import XCTest
-import ZIPFoundation
 
 @testable import TextExtractor
 
 final class Phase1SafetyTests: XCTestCase {
     func testDOCXRejectsEntryAboveExpandedEntryBudget() throws {
         let body = documentXML(text: String(repeating: "Highly compressible text. ", count: 200))
-        let data = try makeArchiveData(entries: ["word/document.xml": body])
+        let data = try FixtureSupport.makeArchiveData(entries: ["word/document.xml": body])
 
         var options = TextExtractionOptions()
         options.maxArchiveEntryBytes = 512
@@ -23,7 +22,7 @@ final class Phase1SafetyTests: XCTestCase {
     func testDOCXRejectsCumulativeExpandedContentAboveBudget() throws {
         let body = documentXML(text: String(repeating: "Body text. ", count: 30))
         let footnotes = footnotesXML(text: String(repeating: "Footnote text. ", count: 30))
-        let data = try makeArchiveData(entries: [
+        let data = try FixtureSupport.makeArchiveData(entries: [
             "word/document.xml": body,
             "word/footnotes.xml": footnotes
         ])
@@ -44,7 +43,7 @@ final class Phase1SafetyTests: XCTestCase {
         for index in 0..<6 {
             entries["custom/part\(index).xml"] = "<part>\(index)</part>"
         }
-        let data = try makeArchiveData(entries: entries)
+        let data = try FixtureSupport.makeArchiveData(entries: entries)
 
         var options = TextExtractionOptions()
         options.maxArchiveEntryCount = 3
@@ -57,7 +56,7 @@ final class Phase1SafetyTests: XCTestCase {
     }
 
     func testGenericZIPIsNotSniffedAsDOCX() throws {
-        let data = try makeArchiveData(entries: ["hello.txt": "hello"])
+        let data = try FixtureSupport.makeArchiveData(entries: ["hello.txt": "hello"], fileName: "fixture.zip")
         XCTAssertFalse(DOCXTextExtractor().canExtract(data: data, fileName: nil))
         XCTAssertNil(TextExtractor().extractor(forFileName: nil, data: data))
     }
@@ -73,14 +72,14 @@ final class Phase1SafetyTests: XCTestCase {
     }
 
     func testDataBasedDOCXDoesNotLeaveTemporaryDirectories() throws {
-        let data = try makeArchiveData(entries: ["word/document.xml": documentXML(text: "Hello")])
-        let before = try textExtractorTemporaryDirectories()
+        let data = try FixtureSupport.makeArchiveData(entries: ["word/document.xml": documentXML(text: "Hello")])
+        let before = try FixtureSupport.textExtractorTemporaryDirectories()
 
         for _ in 0..<3 {
             _ = try TextExtractor().extract(data: data, fileName: "memory.docx")
         }
 
-        let after = try textExtractorTemporaryDirectories()
+        let after = try FixtureSupport.textExtractorTemporaryDirectories()
         XCTAssertEqual(after, before)
     }
 
@@ -117,31 +116,6 @@ final class Phase1SafetyTests: XCTestCase {
         }
     }
 
-    private func makeArchiveData(entries: [String: String]) throws -> Data {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TextExtractorSafetyTests-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-
-        let url = directory.appendingPathComponent("fixture.zip")
-        let archive = try Archive(url: url, accessMode: .create)
-
-        for (path, string) in entries {
-            let data = Data(string.utf8)
-            try archive.addEntry(
-                with: path,
-                type: .file,
-                uncompressedSize: Int64(data.count),
-                compressionMethod: .deflate
-            ) { position, size in
-                let start = Int(position)
-                return data.subdata(in: start..<(start + size))
-            }
-        }
-
-        return try Data(contentsOf: url)
-    }
-
     private func documentXML(text: String) -> String {
         """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -158,20 +132,6 @@ final class Phase1SafetyTests: XCTestCase {
           <w:footnote w:id="2"><w:p><w:r><w:t>\(text)</w:t></w:r></w:p></w:footnote>
         </w:footnotes>
         """
-    }
-
-    private func textExtractorTemporaryDirectories() throws -> Set<String> {
-        let urls = try FileManager.default.contentsOfDirectory(
-            at: FileManager.default.temporaryDirectory,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        )
-
-        return Set(urls.compactMap { url in
-            guard url.lastPathComponent.hasPrefix("TextExtractor-") else { return nil }
-            guard (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { return nil }
-            return url.lastPathComponent
-        })
     }
 
     private func assertInvalidDocument(

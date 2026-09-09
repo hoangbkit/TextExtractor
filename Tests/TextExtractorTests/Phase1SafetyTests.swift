@@ -124,16 +124,14 @@ final class Phase1SafetyTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let url = directory.appendingPathComponent("fixture.zip")
-        guard let archive = Archive(url: url, accessMode: .create) else {
-            throw NSError(domain: "TextExtractorSafetyTests", code: 1)
-        }
+        let archive = try Archive(url: url, accessMode: .create)
 
         for (path, string) in entries {
             let data = Data(string.utf8)
             try archive.addEntry(
                 with: path,
                 type: .file,
-                uncompressedSize: UInt32(data.count),
+                uncompressedSize: Int64(data.count),
                 compressionMethod: .deflate
             ) { position, size in
                 let start = Int(position)

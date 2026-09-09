@@ -13,8 +13,12 @@ final class RTFTextExtractorTests: XCTestCase {
         XCTAssertTrue(document.text.contains("Hello rich text."))
     }
 
-    func testEmptyRTFThrows() {
-        XCTAssertThrowsError(try TextExtractor().extract(data: Data(), fileName: "empty.rtf"))
+    func testEmptyRTFThrowsDomainError() {
+        XCTAssertThrowsError(try TextExtractor().extract(data: Data(), fileName: "empty.rtf")) { error in
+            guard case TextExtractionError.invalidDocument = error else {
+                return XCTFail("Expected invalidDocument, got \(error)")
+            }
+        }
     }
 }
 #endif

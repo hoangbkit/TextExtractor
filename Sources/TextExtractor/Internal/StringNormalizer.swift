@@ -5,6 +5,8 @@ enum StringNormalizer {
         var value = text
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
+            .replacingOccurrences(of: "\u{2028}", with: "\n")
+            .replacingOccurrences(of: "\u{2029}", with: "\n")
             .replacingOccurrences(of: "\u{00A0}", with: " ")
             .replacingOccurrences(of: "\u{200B}", with: "")
 

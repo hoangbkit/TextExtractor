@@ -37,12 +37,14 @@ targets:
   TextExtractorDemo-macOS:
     templates:
       - DemoApp
+    type: application
     platform: macOS
     deploymentTarget: "15.0"
 
   TextExtractorDemo-iOS:
     templates:
       - DemoApp
+    type: application
     platform: iOS
     deploymentTarget: "26.0"
     settings:

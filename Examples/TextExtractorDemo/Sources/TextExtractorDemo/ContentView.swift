@@ -4,9 +4,13 @@ struct ContentView: View {
     @StateObject private var viewModel = DemoViewModel()
     @State private var isImporterPresented = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    @State private var preferredCompactColumn: NavigationSplitViewColumn = .sidebar
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView(
+            columnVisibility: $columnVisibility,
+            preferredCompactColumn: $preferredCompactColumn
+        ) {
             sidebar
         } detail: {
             detail
@@ -23,11 +27,11 @@ struct ContentView: View {
             case .success(let urls):
                 if let url = urls.first {
                     viewModel.extractImportedFile(url: url)
-                    columnVisibility = .detailOnly
+                    showDetail()
                 }
             case .failure(let error):
                 viewModel.errorMessage = error.localizedDescription
-                columnVisibility = .detailOnly
+                showDetail()
             }
         }
     }
@@ -73,8 +77,18 @@ struct ContentView: View {
     private var fixtureSelection: Binding<FixtureFile.ID?> {
         Binding(
             get: { viewModel.selectedFixtureID },
-            set: { viewModel.selectFixture($0) }
+            set: { id in
+                viewModel.selectFixture(id)
+                if id != nil {
+                    showDetail()
+                }
+            }
         )
+    }
+
+    private func showDetail() {
+        preferredCompactColumn = .detail
+        columnVisibility = .detailOnly
     }
 
     @ViewBuilder

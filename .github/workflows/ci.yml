@@ -58,7 +58,7 @@ jobs:
           fi
           xcodegen --version
 
-      - name: Generate macOS demo
+      - name: Generate demo project
         run: |
           cd Examples/TextExtractorDemo
           xcodegen generate
@@ -66,15 +66,15 @@ jobs:
       - name: Build macOS demo
         run: |
           xcodebuild \
-            -scheme TextExtractorDemo \
+            -scheme TextExtractorDemo-macOS \
             -project Examples/TextExtractorDemo/TextExtractorDemo.xcodeproj \
             -destination 'platform=macOS' \
-            -derivedDataPath "$RUNNER_TEMP/TextExtractorDemoDerivedData" \
+            -derivedDataPath "$RUNNER_TEMP/TextExtractorDemo-macOS-DerivedData" \
             CODE_SIGNING_ALLOWED=NO \
             build
 
   ios:
-    name: Apple Silicon macOS 26 — iOS Simulator demo
+    name: Apple Silicon macOS 26 — iOS 26 Simulator demo
     runs-on: macos-26
     timeout-minutes: 30
 
@@ -100,17 +100,17 @@ jobs:
           fi
           xcodegen --version
 
-      - name: Generate iOS demo
+      - name: Generate demo project
         run: |
-          cd Examples/TextExtractorIOSDemo
+          cd Examples/TextExtractorDemo
           xcodegen generate
 
       - name: Build iOS demo for Simulator
         run: |
           xcodebuild \
-            -scheme TextExtractorIOSDemo \
-            -project Examples/TextExtractorIOSDemo/TextExtractorIOSDemo.xcodeproj \
+            -scheme TextExtractorDemo-iOS \
+            -project Examples/TextExtractorDemo/TextExtractorDemo.xcodeproj \
             -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/TextExtractorIOSDemoDerivedData" \
+            -derivedDataPath "$RUNNER_TEMP/TextExtractorDemo-iOS-DerivedData" \
             CODE_SIGNING_ALLOWED=NO \
             build

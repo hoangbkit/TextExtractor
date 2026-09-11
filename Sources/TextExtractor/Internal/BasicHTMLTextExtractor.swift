@@ -1,23 +1,38 @@
 import Foundation
 
 enum BasicHTMLTextExtractor {
+    private static let semanticBlockClosingTagPattern = #"(?i)</(p|div|section|article|header|footer|main|aside|nav|h[1-6]|li|tr|blockquote|pre)\s*>"#
+    private static let horizontalRulePattern = #"(?i)<hr\b[^>]*>"#
+
     static func extractText(from data: Data, fileName: String?, options: TextExtractionOptions) throws -> String {
         let html = try StringDecoder.decode(data, fileName: fileName)
         return extractText(fromHTMLString: html, options: options)
     }
 
     static func extractText(fromHTMLString html: String, options: TextExtractionOptions) -> String {
+        let paragraphBoundary = options.preserveParagraphs ? options.paragraphSeparator : "\n"
+
         var value = html
         value = value.replacingOccurrences(of: #"(?s)<!--.*?-->"#, with: "\n", options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?is)<(script|style|noscript)[^>]*>.*?</\1>"#, with: "\n", options: .regularExpression)
-        value = value.replacingOccurrences(of: #"(?i)<br\s*/?>"#, with: "\n", options: .regularExpression)
-        value = value.replacingOccurrences(of: #"(?i)<hr\s*/?>"#, with: "\n", options: .regularExpression)
-        value = value.replacingOccurrences(of: #"(?i)</(p|div|section|article|header|footer|main|aside|nav|h[1-6]|li|tr|blockquote|pre)>"#, with: "\n", options: .regularExpression)
-        value = value.replacingOccurrences(of: #"(?i)<li[^>]*>"#, with: "\n", options: .regularExpression)
-        value = value.replacingOccurrences(of: #"(?i)</t[dh]>"#, with: "\t", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"(?i)<br\b[^>]*>"#, with: "\n", options: .regularExpression)
+        value = value.replacingOccurrences(of: horizontalRulePattern, with: paragraphBoundary, options: .regularExpression)
+        value = value.replacingOccurrences(of: semanticBlockClosingTagPattern, with: paragraphBoundary, options: .regularExpression)
+        value = value.replacingOccurrences(of: #"(?i)<li\b[^>]*>"#, with: "\n", options: .regularExpression)
+        value = value.replacingOccurrences(of: #"(?i)</t[dh]\s*>"#, with: "\t", options: .regularExpression)
         value = stripTags(value)
         value = HTMLEntityDecoder.decode(value)
         return StringNormalizer.normalize(value, options: options)
+    }
+
+    /// Adds an out-of-band marker after semantic block boundaries while retaining
+    /// the original tags. The native attributed-string HTML importer can then do
+    /// its normal decoding, and callers can restore the marker to the configured
+    /// paragraph separator without confusing `<br>` line breaks with paragraphs.
+    static func insertingBlockBoundaryMarkers(in html: String, marker: String) -> String {
+        var value = inserting(marker: marker, afterMatchesOf: semanticBlockClosingTagPattern, in: html)
+        value = inserting(marker: marker, afterMatchesOf: horizontalRulePattern, in: value)
+        return value
     }
 
     static func stripTags(_ string: String) -> String {
@@ -53,6 +68,21 @@ enum BasicHTMLTextExtractor {
                 output.append(character)
             }
             index = string.index(after: index)
+        }
+        return output
+    }
+
+    private static func inserting(marker: String, afterMatchesOf pattern: String, in input: String) -> String {
+        guard !marker.isEmpty,
+              let regex = try? NSRegularExpression(pattern: pattern) else {
+            return input
+        }
+
+        var output = input
+        let range = NSRange(input.startIndex..<input.endIndex, in: input)
+        for match in regex.matches(in: input, range: range).reversed() {
+            guard let matchRange = Range(match.range, in: output) else { continue }
+            output.insert(contentsOf: marker, at: matchRange.upperBound)
         }
         return output
     }

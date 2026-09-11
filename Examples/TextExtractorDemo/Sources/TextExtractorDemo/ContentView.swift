@@ -26,34 +26,43 @@ struct ContentView: View {
             switch result {
             case .success(let urls):
                 if let url = urls.first {
-                    viewModel.extractImportedFile(url: url)
-                    showDetail()
+                    viewModel.importCustomFile(url: url)
                 }
             case .failure(let error):
-                viewModel.errorMessage = error.localizedDescription
-                showDetail()
+                viewModel.importErrorMessage = error.localizedDescription
             }
+        }
+        .alert("Could Not Add File", isPresented: importErrorPresented) {
+            Button("OK", role: .cancel) {
+                viewModel.importErrorMessage = nil
+            }
+        } message: {
+            Text(viewModel.importErrorMessage ?? "Unknown error")
         }
     }
 
     private var sidebar: some View {
         List(selection: fixtureSelection) {
+            if !viewModel.customFiles.isEmpty {
+                Section("CUSTOM") {
+                    ForEach(viewModel.customFiles) { file in
+                        sampleLink(file)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    viewModel.removeCustomFile(file)
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
+                            }
+                    }
+                    .onDelete(perform: viewModel.removeCustomFiles)
+                }
+            }
+
             ForEach(viewModel.fixtureSections) { section in
                 Section(section.name.uppercased()) {
                     ForEach(section.files) { fixture in
-                        NavigationLink(value: fixture.id) {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(fixture.fileName)
-                                    Text(fixture.relativePath)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: iconName(for: fixture.fileExtension))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
+                        sampleLink(fixture)
                     }
                 }
             }
@@ -74,6 +83,22 @@ struct ContentView: View {
         }
     }
 
+    private func sampleLink(_ file: FixtureFile) -> some View {
+        NavigationLink(value: file.id) {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(file.fileName)
+                    Text(file.relativePath)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: iconName(for: file.fileExtension))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var fixtureSelection: Binding<FixtureFile.ID?> {
         Binding(
             get: { viewModel.selectedFixtureID },
@@ -81,6 +106,17 @@ struct ContentView: View {
                 viewModel.selectFixture(id)
                 if id != nil {
                     showDetail()
+                }
+            }
+        )
+    }
+
+    private var importErrorPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.importErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.importErrorMessage = nil
                 }
             }
         )

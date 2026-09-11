@@ -83,6 +83,19 @@ final class HTMLTextExtractorTests: XCTestCase {
         XCTAssertEqual(text, "Title\n\nFirst paragraph.\n\nSecond paragraph.")
     }
 
+    func testBasicHTMLFallbackHonorsCustomSeparatorWithoutTrailingBoundary() {
+        let html = "<h2>Heading</h2><p>Body text.</p>"
+        var options = TextExtractionOptions()
+        options.paragraphSeparator = "\n---\n"
+
+        let text = BasicHTMLTextExtractor.extractText(
+            fromHTMLString: html,
+            options: options
+        )
+
+        XCTAssertEqual(text, "Heading\n---\nBody text.")
+    }
+
     func testFallbackHandlesCommentsQuotedGreaterThanAndTables() {
         let html = """
         <!-- hidden -->

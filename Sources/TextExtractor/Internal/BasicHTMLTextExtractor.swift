@@ -3,6 +3,7 @@ import Foundation
 enum BasicHTMLTextExtractor {
     private static let semanticBlockClosingTagPattern = #"(?i)</(p|div|section|article|header|footer|main|aside|nav|h[1-6]|li|tr|blockquote|pre)\s*>"#
     private static let horizontalRulePattern = #"(?i)<hr\b[^>]*>"#
+    private static let fallbackBlockBoundaryMarker = "\u{E000}TEXTEXTRACTOR_BASIC_BLOCK_BOUNDARY\u{E001}"
 
     static func extractText(from data: Data, fileName: String?, options: TextExtractionOptions) throws -> String {
         let html = try StringDecoder.decode(data, fileName: fileName)
@@ -16,12 +17,17 @@ enum BasicHTMLTextExtractor {
         value = value.replacingOccurrences(of: #"(?s)<!--.*?-->"#, with: "\n", options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?is)<(script|style|noscript)[^>]*>.*?</\1>"#, with: "\n", options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?i)<br\b[^>]*>"#, with: "\n", options: .regularExpression)
-        value = value.replacingOccurrences(of: horizontalRulePattern, with: paragraphBoundary, options: .regularExpression)
-        value = value.replacingOccurrences(of: semanticBlockClosingTagPattern, with: paragraphBoundary, options: .regularExpression)
+        value = value.replacingOccurrences(of: horizontalRulePattern, with: fallbackBlockBoundaryMarker, options: .regularExpression)
+        value = value.replacingOccurrences(of: semanticBlockClosingTagPattern, with: fallbackBlockBoundaryMarker, options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?i)<li\b[^>]*>"#, with: "\n", options: .regularExpression)
         value = value.replacingOccurrences(of: #"(?i)</t[dh]\s*>"#, with: "\t", options: .regularExpression)
         value = stripTags(value)
         value = HTMLEntityDecoder.decode(value)
+        value = replacingBoundaryMarkers(
+            in: value,
+            marker: fallbackBlockBoundaryMarker,
+            with: paragraphBoundary
+        )
         return StringNormalizer.normalize(value, options: options)
     }
 
@@ -70,6 +76,35 @@ enum BasicHTMLTextExtractor {
             index = string.index(after: index)
         }
         return output
+    }
+
+    private static func replacingBoundaryMarkers(in text: String, marker: String, with separator: String) -> String {
+        var output = text
+
+        while let markerRange = output.range(of: marker) {
+            var lowerBound = markerRange.lowerBound
+            while lowerBound > output.startIndex {
+                let previous = output.index(before: lowerBound)
+                guard isBoundaryWhitespace(output[previous]) else { break }
+                lowerBound = previous
+            }
+
+            var upperBound = markerRange.upperBound
+            while upperBound < output.endIndex {
+                guard isBoundaryWhitespace(output[upperBound]) else { break }
+                upperBound = output.index(after: upperBound)
+            }
+
+            let isAtDocumentEdge = lowerBound == output.startIndex || upperBound == output.endIndex
+            output.replaceSubrange(lowerBound..<upperBound, with: isAtDocumentEdge ? "" : separator)
+        }
+
+        return output
+    }
+
+    private static func isBoundaryWhitespace(_ character: Character) -> Bool {
+        character == " " || character == "\t" || character == "\n" || character == "\r"
+            || character == "\u{2028}" || character == "\u{2029}"
     }
 
     private static func inserting(marker: String, afterMatchesOf pattern: String, in input: String) -> String {

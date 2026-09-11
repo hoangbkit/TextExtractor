@@ -31,7 +31,8 @@ public struct RTFTextExtractor: TextFormatExtractor {
             title: FileName.title(from: fileName, sourceURL: sourceURL),
             sourceURL: sourceURL,
             format: format,
-            text: StringNormalizer.normalize(attributed.string, options: options)
+            text: StringNormalizer.normalize(attributed.string, options: options),
+            rawText: try? StringDecoder.decode(data, fileName: fileName)
         )
         #else
         throw TextExtractionError.unsupportedOnCurrentPlatform(format: .rtf)

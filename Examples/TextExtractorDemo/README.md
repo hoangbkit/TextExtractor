@@ -1,8 +1,13 @@
 # TextExtractorDemo
 
-A macOS 15+ SwiftUI demo for the `TextExtractor` package.
+A single SwiftUI demo project for `TextExtractor`, generated with XcodeGen and shared by:
 
-The Xcode project is generated with XcodeGen and is intentionally not committed.
+- `TextExtractorDemo-macOS` — macOS 15+, Intel and Apple Silicon
+- `TextExtractorDemo-iOS` — iOS 26+
+
+Both targets use the bundle identifier `com.hoangbkit.text.extractor.demo` and development team `J458WW3452`.
+
+Generated `.xcodeproj` directories are intentionally ignored and must not be committed.
 
 ## Generate and open
 
@@ -12,21 +17,30 @@ xcodegen generate
 open TextExtractorDemo.xcodeproj
 ```
 
-Then select the `TextExtractorDemo` scheme and run.
-
-The generated project links the local package at `../..`, so keep the demo inside the `TextExtractor` repository.
+Choose either demo scheme in Xcode.
 
 ## What it demos
 
-- Import `.txt`, `.md`, `.markdown`, `.srt`, `.vtt`, `.rtf`, `.html`, `.htm`, and `.docx` files.
-- Preview normalized TTS-ready text.
-- Preview subtitle segments with timestamps.
-- Inspect metadata, warnings, character count, word count, line count, and segment count.
-- Browse every file under the repository's `Fixtures` directory.
-- Refresh the sidebar after adding or removing fixture files without rebuilding the app.
+- Bundles the repository `Fixtures` directory into both apps.
+- Lists every bundled file whose extension is supported by `TextExtractor`.
+- Extracts the selected sample away from the main actor and shows the extracted text in the detail view.
+- Provides an **Open File** button using the system file importer for external files.
+- Supports the package's plain text, Markdown, SRT, WebVTT, RTF, HTML, and DOCX extensions.
 
-## Notes
+The fixture folder is copied into the app bundle by XcodeGen as a folder resource, so the built demo does not depend on the source checkout path at runtime.
 
-The demo resolves `Fixtures` from the source checkout path embedded at compile time, so the repository should remain at the same path while the built app is running.
+## Command line
 
-CI regenerates this project with XcodeGen and builds it on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26 runners.
+Build the macOS demo:
+
+```bash
+make build
+```
+
+Build the iOS demo for the Simulator:
+
+```bash
+make ios-build
+```
+
+CI regenerates the same project and builds the macOS target on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26 runners. The iOS target is built for an iOS 26 Simulator destination on the macOS 26 runner.

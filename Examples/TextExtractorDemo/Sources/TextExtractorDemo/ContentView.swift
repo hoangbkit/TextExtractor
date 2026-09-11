@@ -11,6 +11,9 @@ struct ContentView: View {
         } detail: {
             detail
         }
+#if os(macOS)
+        .navigationSplitViewStyle(.balanced)
+#endif
         .fileImporter(
             isPresented: $isImporterPresented,
             allowedContentTypes: SupportedContentTypes.readableTextImports,
@@ -51,6 +54,9 @@ struct ContentView: View {
                 }
             }
         }
+#if os(macOS)
+        .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 380)
+#endif
         .navigationTitle("Samples")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

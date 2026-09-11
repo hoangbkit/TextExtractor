@@ -9,6 +9,12 @@ final class StringNormalizerTests: XCTestCase {
         XCTAssertEqual(output, "First line\n\nSecond line")
     }
 
+    func testNormalizesUnicodeLineAndParagraphSeparators() {
+        let input = "First\u{2028}Second\u{2029}Third"
+        let output = StringNormalizer.normalize(input, options: TextExtractionOptions())
+        XCTAssertEqual(output, "First\nSecond\nThird")
+    }
+
     func testCanFlattenParagraphs() {
         var options = TextExtractionOptions()
         options.preserveParagraphs = false

@@ -50,6 +50,7 @@ targets:
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
 
 schemes:
   TextExtractorDemo-macOS:

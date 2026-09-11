@@ -9,6 +9,8 @@ public struct HTMLTextExtractor: TextFormatExtractor {
     public let format: TextExtractionFormat = .html
     public let supportedFileExtensions: Set<String> = TextExtractionFormat.html.fileExtensions
 
+    private static let blockBoundaryMarker = "\u{E000}TEXTEXTRACTOR_BLOCK_BOUNDARY\u{E001}"
+
     public init() {}
 
     public func canExtract(data: Data, fileName: String?) -> Bool {
@@ -23,17 +25,34 @@ public struct HTMLTextExtractor: TextFormatExtractor {
         options: TextExtractionOptions
     ) throws -> ExtractedTextDocument {
         let text: String
+        let rawText = try? StringDecoder.decode(data, fileName: fileName)
 
         #if canImport(AppKit) || canImport(UIKit)
+        let markedData: Data
+        if let rawText {
+            let markedHTML = BasicHTMLTextExtractor.insertingBlockBoundaryMarkers(
+                in: rawText,
+                marker: Self.blockBoundaryMarker
+            )
+            markedData = Data(markedHTML.utf8)
+        } else {
+            markedData = data
+        }
+
         if let attributed = try? NSAttributedString(
-            data: data,
+            data: markedData,
             options: [
                 .documentType: NSAttributedString.DocumentType.html,
                 .characterEncoding: String.Encoding.utf8.rawValue
             ],
             documentAttributes: nil
         ) {
-            text = StringNormalizer.normalize(attributed.string, options: options)
+            let separator = options.preserveParagraphs ? options.paragraphSeparator : "\n"
+            let structured = Self.replacingBlockBoundaryMarkers(
+                in: attributed.string,
+                with: separator
+            )
+            text = StringNormalizer.normalize(structured, options: options)
         } else {
             text = try BasicHTMLTextExtractor.extractText(from: data, fileName: fileName, options: options)
         }
@@ -45,7 +64,37 @@ public struct HTMLTextExtractor: TextFormatExtractor {
             title: FileName.title(from: fileName, sourceURL: sourceURL),
             sourceURL: sourceURL,
             format: format,
-            text: text
+            text: text,
+            rawText: rawText
         )
+    }
+
+    private static func replacingBlockBoundaryMarkers(in text: String, with separator: String) -> String {
+        var output = text
+
+        while let markerRange = output.range(of: blockBoundaryMarker) {
+            var lowerBound = markerRange.lowerBound
+            while lowerBound > output.startIndex {
+                let previous = output.index(before: lowerBound)
+                guard isBoundaryWhitespace(output[previous]) else { break }
+                lowerBound = previous
+            }
+
+            var upperBound = markerRange.upperBound
+            while upperBound < output.endIndex {
+                guard isBoundaryWhitespace(output[upperBound]) else { break }
+                upperBound = output.index(after: upperBound)
+            }
+
+            let isAtDocumentEdge = lowerBound == output.startIndex || upperBound == output.endIndex
+            output.replaceSubrange(lowerBound..<upperBound, with: isAtDocumentEdge ? "" : separator)
+        }
+
+        return output
+    }
+
+    private static func isBoundaryWhitespace(_ character: Character) -> Bool {
+        character == " " || character == "\t" || character == "\n" || character == "\r"
+            || character == "\u{2028}" || character == "\u{2029}"
     }
 }

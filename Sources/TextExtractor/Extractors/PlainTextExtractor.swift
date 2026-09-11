@@ -20,6 +20,7 @@ public struct PlainTextExtractor: TextFormatExtractor {
             sourceURL: sourceURL,
             format: format,
             text: StringNormalizer.normalize(decoded.string, options: options),
+            rawText: decoded.string,
             metadata: ["encoding": decoded.encodingName],
             warnings: warnings
         )

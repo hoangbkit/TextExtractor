@@ -4,6 +4,8 @@ Production-oriented Swift Package for extracting readable, narration-friendly te
 
 TextExtractor is designed for macOS and iOS applications that need predictable plain-text output, optional timed segments, stable warnings, and bounded processing of user-controlled files.
 
+> **Project status:** This repository is public, but it is not actively maintained as a traditional open-source project.
+
 ## Platforms
 
 - macOS 15+
@@ -21,7 +23,7 @@ The package manifest intentionally uses string deployment versions so Swift tool
 | SubRip | `.srt` | Timed segments with rolling-caption deduplication |
 | WebVTT | `.vtt`, `.webvtt` | Timed segments, cue settings ignored for narration |
 | RTF | `.rtf` | Readable attributed-string text on Apple platforms |
-| HTML | `.html`, `.htm` | Readable text with script/style/noscript removal |
+| HTML | `.html`, `.htm` | Readable text with semantic paragraph boundaries and script/style/noscript removal |
 | DOCX | `.docx` | Reading-order OOXML text, tables, common lists, notes, optional headers/footers |
 
 PDF and EPUB are intentionally outside this package because they require different extraction and layout strategies.
@@ -47,9 +49,12 @@ let document = try extractor.extract(from: url)
 print(document.title)
 print(document.format)
 print(document.text)
+print(document.rawText)
 print(document.segments)
 print(document.warnings)
 ```
+
+`document.text` is the normalized, reading-oriented output. `document.rawText` contains decoded source text before format parsing and whitespace normalization when a meaningful textual source exists. Text-based formats such as TXT, Markdown, HTML, SRT, VTT, and RTF expose it; binary container formats such as DOCX leave it `nil`.
 
 Extraction from in-memory data is also supported:
 
@@ -98,16 +103,17 @@ TextExtractor is reading-oriented, not layout-preserving.
 - Plain text uses deterministic encoding detection, including UTF-8, BOM-based UTF-16, conservative BOM-less UTF-16 inference, Windows-1252, and Latin-1 fallback after binary rejection.
 - Markdown aims for useful narration rather than complete CommonMark rendering.
 - SRT/VTT retain usable cue text when timing is malformed and emit a warning when appropriate.
-- HTML prefers Apple attributed-string extraction where available and has an intentionally approximate lightweight fallback.
+- HTML preserves semantic block boundaries for paragraphs/headings, keeps `<br>` as a line break, prefers Apple attributed-string extraction where available, and has an intentionally approximate lightweight fallback.
 - RTF behavior is based on Apple's attributed-string parser.
 - DOCX preserves logical body order, paragraph boundaries, explicit tabs/breaks, tab-separated table cells, common numbering, visible field results, inserted text, and selected optional parts. It does not reproduce Word page layout, styling, floating-object geometry, or every OOXML feature.
 
-Detailed contracts:
+Detailed contracts and planning:
 
 - `docs/API_CONTRACTS.md`
 - `docs/TEXT_FORMAT_BEHAVIOR.md`
 - `docs/DOCX_SEMANTICS.md`
 - `docs/PERFORMANCE_AND_RELIABILITY.md`
+- `docs/TTS_FORMAT_ROADMAP.md`
 
 ## Custom extractors
 
@@ -140,11 +146,14 @@ struct MyExtractor: TextFormatExtractor {
 let extractor = TextExtractor(extractors: [MyExtractor()])
 ```
 
-## Demo apps
+## Demo app
 
-Both demos use XcodeGen. Generated `.xcodeproj` directories are intentionally ignored and must not be committed.
+The repository has one XcodeGen demo project with shared SwiftUI sources and two application targets:
 
-### macOS 15+
+- `TextExtractorDemo-macOS` — macOS 15+, tested on Intel and Apple Silicon
+- `TextExtractorDemo-iOS` — iOS 26+
+
+Both targets use bundle identifier `com.hoangbkit.text.extractor.demo`. Generated `.xcodeproj` directories are intentionally ignored and must not be committed.
 
 ```bash
 cd Examples/TextExtractorDemo
@@ -152,17 +161,7 @@ xcodegen generate
 open TextExtractorDemo.xcodeproj
 ```
 
-The macOS demo imports files, browses repository fixtures, runs extraction away from the main actor, and displays normalized text, segments, metadata, and warnings.
-
-### iOS 26+
-
-```bash
-cd Examples/TextExtractorIOSDemo
-xcodegen generate
-open TextExtractorIOSDemo.xcodeproj
-```
-
-The iOS demo exercises in-memory extraction and the system document importer with security-scoped file access.
+The demo bundles the checked-in `Fixtures` directory, lists every supported fixture file, extracts the selected sample off the main actor, shows parsed and raw text in a detail view, supports importing external files into a persistent Custom section, and provides removal on both platforms.
 
 ## Development
 
@@ -197,13 +196,10 @@ Timing benchmarks are opt-in so normal CI does not depend on runner speed:
 TEXTEXTRACTOR_RUN_BENCHMARKS=1 swift test --filter Phase5BenchmarkTests
 ```
 
-CI verifies the package and macOS demo on:
+CI is intentionally split by purpose:
 
-- Intel macOS 15 (`macos-15-intel`)
-- Apple Silicon macOS 15 (`macos-15`)
-- Apple Silicon macOS 26 (`macos-26`)
-
-CI also generates and builds the iOS demo for a generic iOS Simulator destination on the Apple Silicon macOS 26 runner.
+- **Fast CI** runs for pull requests targeting `master` and only executes the Swift package tests. It intentionally does not build the demo apps.
+- **Full CI** runs on pushes to `master` or by manual dispatch. It runs package tests and release builds, generates the XcodeGen demo project, builds the macOS demo on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26, and builds the iOS demo for a generic iOS Simulator on macOS 26.
 
 See `docs/TESTING.md` for fixture and regression-test guidance.
 

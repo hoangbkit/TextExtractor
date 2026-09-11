@@ -1,5 +1,4 @@
 import SwiftUI
-import TextExtractor
 
 struct ContentView: View {
     @StateObject private var viewModel = DemoViewModel()
@@ -8,10 +7,12 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 340)
         } detail: {
             detail
         }
+#if os(macOS)
+        .navigationSplitViewStyle(.balanced)
+#endif
         .fileImporter(
             isPresented: $isImporterPresented,
             allowedContentTypes: SupportedContentTypes.readableTextImports,
@@ -20,61 +21,75 @@ struct ContentView: View {
             switch result {
             case .success(let urls):
                 if let url = urls.first {
-                    viewModel.extractImportedFile(url: url)
+                    viewModel.importCustomFile(url: url)
                 }
             case .failure(let error):
-                viewModel.errorMessage = error.localizedDescription
+                viewModel.importErrorMessage = error.localizedDescription
             }
+        }
+        .alert("Could Not Add File", isPresented: importErrorPresented) {
+            Button("OK", role: .cancel) {
+                viewModel.importErrorMessage = nil
+            }
+        } message: {
+            Text(viewModel.importErrorMessage ?? "Unknown error")
         }
     }
 
     private var sidebar: some View {
-        VStack(spacing: 0) {
-            List(selection: fixtureSelection) {
-                ForEach(viewModel.fixtureSections) { section in
-                    Section(section.name.uppercased()) {
-                        ForEach(section.files) { fixture in
-                            Label {
-                                Text(fixture.fileName)
-                            } icon: {
-                                Image(systemName: iconName(for: fixture.fileExtension))
-                                    .foregroundStyle(.secondary)
+        List(selection: fixtureSelection) {
+            if !viewModel.customFiles.isEmpty {
+                Section("CUSTOM") {
+                    ForEach(viewModel.customFiles) { file in
+                        sampleLink(file)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    viewModel.removeCustomFile(file)
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
                             }
-                            .tag(fixture.id)
-                        }
+                    }
+                    .onDelete(perform: viewModel.removeCustomFiles)
+                }
+            }
+
+            ForEach(viewModel.fixtureSections) { section in
+                Section(section.name.uppercased()) {
+                    ForEach(section.files) { fixture in
+                        sampleLink(fixture)
                     }
                 }
             }
-            .listStyle(.sidebar)
-
-            Divider()
-
-            HStack {
-                Button {
-                    viewModel.reloadFixtures()
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-
-                Spacer()
-
+        }
+#if os(macOS)
+        .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 380)
+#endif
+        .navigationTitle("Samples")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     isImporterPresented = true
                 } label: {
-                    Label("Import", systemImage: "square.and.arrow.down")
+                    Label("Open File", systemImage: "folder")
                 }
                 .disabled(viewModel.isExtracting)
             }
-            .buttonStyle(.borderless)
-            .padding(12)
         }
-        .navigationTitle("Fixtures")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                if viewModel.isExtracting {
-                    ProgressView()
-                        .controlSize(.small)
+    }
+
+    private func sampleLink(_ file: FixtureFile) -> some View {
+        NavigationLink(value: file.id) {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(file.fileName)
+                    Text(file.relativePath)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+            } icon: {
+                Image(systemName: iconName(for: file.fileExtension))
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -86,32 +101,99 @@ struct ContentView: View {
         )
     }
 
+    private var importErrorPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.importErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.importErrorMessage = nil
+                }
+            }
+        )
+    }
+
     @ViewBuilder
     private var detail: some View {
-        if let errorMessage = viewModel.errorMessage {
-            EmptyStateView(
-                title: "Import failed",
+        if viewModel.isExtracting {
+            ProgressView("Extracting…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let errorMessage = viewModel.errorMessage {
+            ContentUnavailableView(
+                "Extraction Failed",
                 systemImage: "exclamationmark.triangle",
-                message: errorMessage
+                description: Text(errorMessage)
             )
         } else if let document = viewModel.document {
-            DocumentDetailView(document: document, selectedTab: $viewModel.selectedTab)
+            ExtractedTextDetailView(
+                sourceName: viewModel.selectedSourceName ?? document.title,
+                format: document.format.rawValue,
+                parsedText: document.text,
+                rawText: document.rawText
+            )
+            .id(viewModel.selectedFixtureID)
         } else {
-            EmptyStateView(
-                title: "Select a fixture",
+            ContentUnavailableView(
+                "Select a File",
                 systemImage: "doc.text.magnifyingglass",
-                message: "Choose a file from \(viewModel.fixturesDirectory.path) to see its extracted text."
+                description: Text("Choose a bundled sample or open an external file.")
             )
         }
     }
 
     private func iconName(for fileExtension: String) -> String {
         switch fileExtension {
-        case "srt", "vtt": "captions.bubble"
+        case "srt", "vtt", "webvtt": "captions.bubble"
         case "html", "htm": "globe"
-        case "md", "markdown": "text.document"
+        case "md", "markdown", "mdown", "mkd": "text.document"
         case "docx": "doc.richtext"
         default: "doc.text"
+        }
+    }
+}
+
+private enum DetailContentMode: String, CaseIterable, Identifiable {
+    case parsed = "Parsed"
+    case raw = "Raw"
+
+    var id: Self { self }
+}
+
+private struct ExtractedTextDetailView: View {
+    let sourceName: String
+    let format: String
+    let parsedText: String
+    let rawText: String?
+
+    @State private var mode: DetailContentMode = .parsed
+
+    var body: some View {
+        ScrollView {
+            Text(displayedText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
+                .padding()
+        }
+        .navigationTitle(sourceName)
+        .navigationSubtitle(format.uppercased())
+        .toolbar {
+            ToolbarItem {
+                Picker("View", selection: $mode) {
+                    ForEach(DetailContentMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 180)
+            }
+        }
+    }
+
+    private var displayedText: String {
+        switch mode {
+        case .parsed:
+            return parsedText.isEmpty ? "No text extracted." : parsedText
+        case .raw:
+            return rawText ?? "Raw source text is unavailable for this binary format."
         }
     }
 }

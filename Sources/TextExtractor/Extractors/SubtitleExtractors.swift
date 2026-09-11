@@ -11,8 +11,15 @@ public struct SRTSubtitleExtractor: TextFormatExtractor {
     public func extract(data: Data, fileName: String?, sourceURL: URL?, options: TextExtractionOptions) throws -> ExtractedTextDocument {
         let raw = try StringDecoder.decode(data, fileName: fileName)
         let result = SubtitleParser.parse(raw, format: .srt, options: options)
-        return ExtractedTextDocument(title: FileName.title(from: fileName, sourceURL: sourceURL), sourceURL: sourceURL,
-            format: format, text: SubtitleParser.joinSegments(result.segments, options: options), segments: result.segments, warnings: result.warnings)
+        return ExtractedTextDocument(
+            title: FileName.title(from: fileName, sourceURL: sourceURL),
+            sourceURL: sourceURL,
+            format: format,
+            text: SubtitleParser.joinSegments(result.segments, options: options),
+            rawText: raw,
+            segments: result.segments,
+            warnings: result.warnings
+        )
     }
 }
 
@@ -27,8 +34,15 @@ public struct VTTSubtitleExtractor: TextFormatExtractor {
     public func extract(data: Data, fileName: String?, sourceURL: URL?, options: TextExtractionOptions) throws -> ExtractedTextDocument {
         let raw = try StringDecoder.decode(data, fileName: fileName)
         let result = SubtitleParser.parse(raw, format: .vtt, options: options)
-        return ExtractedTextDocument(title: FileName.title(from: fileName, sourceURL: sourceURL), sourceURL: sourceURL,
-            format: format, text: SubtitleParser.joinSegments(result.segments, options: options), segments: result.segments, warnings: result.warnings)
+        return ExtractedTextDocument(
+            title: FileName.title(from: fileName, sourceURL: sourceURL),
+            sourceURL: sourceURL,
+            format: format,
+            text: SubtitleParser.joinSegments(result.segments, options: options),
+            rawText: raw,
+            segments: result.segments,
+            warnings: result.warnings
+        )
     }
 }
 

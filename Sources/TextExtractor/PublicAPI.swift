@@ -134,6 +134,9 @@ public struct ExtractedTextDocument: Sendable, Equatable {
     public var sourceURL: URL?
     public var format: TextExtractionFormat
     public var text: String
+    /// Decoded source text before format parsing and whitespace normalization.
+    /// Binary container formats such as DOCX leave this value nil.
+    public var rawText: String?
     public var segments: [ExtractedTextSegment]
     public var metadata: [String: String]
     public var warnings: [TextExtractionWarning]
@@ -143,6 +146,7 @@ public struct ExtractedTextDocument: Sendable, Equatable {
         sourceURL: URL? = nil,
         format: TextExtractionFormat,
         text: String,
+        rawText: String? = nil,
         segments: [ExtractedTextSegment] = [],
         metadata: [String: String] = [:],
         warnings: [TextExtractionWarning] = []
@@ -151,6 +155,7 @@ public struct ExtractedTextDocument: Sendable, Equatable {
         self.sourceURL = sourceURL
         self.format = format
         self.text = text
+        self.rawText = rawText
         self.segments = segments
         self.metadata = metadata
         self.warnings = warnings

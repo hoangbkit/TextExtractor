@@ -11,10 +11,16 @@ public struct MarkdownTextExtractor: TextFormatExtractor {
     }
 
     public func extract(data: Data, fileName: String?, sourceURL: URL?, options: TextExtractionOptions) throws -> ExtractedTextDocument {
-        var text = try StringDecoder.decode(data, fileName: fileName)
+        let rawText = try StringDecoder.decode(data, fileName: fileName)
+        var text = rawText
         if options.markdownMode == .readableText { text = Self.convertToReadableText(text, options: options) }
-        return ExtractedTextDocument(title: FileName.title(from: fileName, sourceURL: sourceURL), sourceURL: sourceURL,
-            format: format, text: StringNormalizer.normalize(text, options: options))
+        return ExtractedTextDocument(
+            title: FileName.title(from: fileName, sourceURL: sourceURL),
+            sourceURL: sourceURL,
+            format: format,
+            text: StringNormalizer.normalize(text, options: options),
+            rawText: rawText
+        )
     }
 
     static func convertToReadableText(_ markdown: String, options: TextExtractionOptions) -> String {

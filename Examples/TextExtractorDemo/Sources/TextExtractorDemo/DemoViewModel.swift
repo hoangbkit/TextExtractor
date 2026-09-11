@@ -4,26 +4,22 @@ import TextExtractor
 @MainActor
 final class DemoViewModel: ObservableObject {
     @Published private(set) var fixtures: [FixtureFile] = []
+    @Published private(set) var customFiles: [FixtureFile] = []
     @Published private(set) var fixturesDirectory: URL
     @Published private(set) var selectedFixtureID: FixtureFile.ID?
     @Published private(set) var document: ExtractedTextDocument?
     @Published private(set) var isExtracting = false
+    @Published private(set) var selectedSourceName: String?
     @Published var errorMessage: String?
-    @Published var selectedTab: DemoTab = .text
+    @Published var importErrorMessage: String?
 
     private let extractor = TextExtractor()
     private var extractionTask: Task<Void, Never>?
 
     init() {
-        fixturesDirectory = Self.defaultFixturesDirectory
+        fixturesDirectory = Self.bundledFixturesDirectory
         reloadFixtures()
-    }
-
-    var supportedExtensionSummary: String {
-        extractor.supportedFileExtensions
-            .sorted()
-            .map { ".\($0)" }
-            .joined(separator: ", ")
+        reloadCustomFiles()
     }
 
     var fixtureSections: [FixtureSection] {
@@ -37,30 +33,22 @@ final class DemoViewModel: ObservableObject {
 
         do {
             let resourceKeys: Set<URLResourceKey> = [.isRegularFileKey, .isHiddenKey]
-            let urls = try FileManager.default.contentsOfDirectory(
+            guard let enumerator = FileManager.default.enumerator(
                 at: fixturesDirectory,
                 includingPropertiesForKeys: Array(resourceKeys),
                 options: [.skipsHiddenFiles, .skipsPackageDescendants]
-            )
-
-            let fileURLs = urls.flatMap { url -> [URL] in
-                if url.hasDirectoryPath {
-                    guard let enumerator = FileManager.default.enumerator(
-                        at: url,
-                        includingPropertiesForKeys: Array(resourceKeys),
-                        options: [.skipsHiddenFiles, .skipsPackageDescendants]
-                    ) else {
-                        return []
-                    }
-                    return enumerator.compactMap { $0 as? URL }
-                }
-                return [url]
+            ) else {
+                throw CocoaError(.fileReadUnknown)
             }
 
-            fixtures = try fileURLs
+            let supportedExtensions = extractor.supportedFileExtensions
+            fixtures = try enumerator
+                .compactMap { $0 as? URL }
                 .filter { url in
                     let values = try url.resourceValues(forKeys: resourceKeys)
-                    return values.isRegularFile == true && values.isHidden != true
+                    return values.isRegularFile == true
+                        && values.isHidden != true
+                        && supportedExtensions.contains(url.pathExtension.lowercased())
                 }
                 .map { url in
                     FixtureFile(
@@ -75,42 +63,139 @@ final class DemoViewModel: ObservableObject {
 
             errorMessage = nil
 
-            if let previousSelection, fixtures.contains(where: { $0.id == previousSelection }) {
-                selectedFixtureID = previousSelection
+            if let previousSelection,
+               fixtures.contains(where: { $0.id == previousSelection }) {
+                selectFixture(previousSelection)
             } else if let first = fixtures.first {
                 selectFixture(first.id)
             } else {
                 selectedFixtureID = nil
+                selectedSourceName = nil
                 document = nil
             }
         } catch {
             fixtures = []
             selectedFixtureID = nil
+            selectedSourceName = nil
             document = nil
-            errorMessage = "Could not read \(fixturesDirectory.path): \(Self.describe(error))"
+            errorMessage = "Could not read bundled fixtures: \(Self.describe(error))"
+        }
+    }
+
+    func reloadCustomFiles() {
+        do {
+            let directory = try Self.customSamplesDirectory()
+            let urls = try FileManager.default.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: [.isRegularFileKey],
+                options: [.skipsHiddenFiles]
+            )
+            let supportedExtensions = extractor.supportedFileExtensions
+
+            customFiles = try urls
+                .filter { url in
+                    let values = try url.resourceValues(forKeys: [.isRegularFileKey])
+                    return values.isRegularFile == true
+                        && supportedExtensions.contains(url.pathExtension.lowercased())
+                }
+                .map { url in
+                    FixtureFile(
+                        url: url,
+                        relativePath: "Custom/\(url.lastPathComponent)"
+                    )
+                }
+                .sorted { $0.fileName.localizedStandardCompare($1.fileName) == .orderedAscending }
+        } catch {
+            customFiles = []
+            importErrorMessage = "Could not load custom files: \(Self.describe(error))"
         }
     }
 
     func selectFixture(_ id: FixtureFile.ID?) {
-        guard selectedFixtureID != id else { return }
         selectedFixtureID = id
 
-        guard let id, let fixture = fixtures.first(where: { $0.id == id }) else {
+        guard let id else {
             extractionTask?.cancel()
+            selectedSourceName = nil
             document = nil
             return
         }
 
-        extract(url: fixture.url)
+        if let customFile = customFiles.first(where: { $0.id == id }) {
+            extract(url: customFile.url, sourceName: customFile.fileName)
+            return
+        }
+
+        guard let fixture = fixtures.first(where: { $0.id == id }) else {
+            extractionTask?.cancel()
+            selectedSourceName = nil
+            document = nil
+            return
+        }
+
+        extract(url: fixture.url, sourceName: fixture.relativePath)
     }
 
-    func extractImportedFile(url: URL) {
-        selectedFixtureID = nil
-        extract(url: url)
+    func importCustomFile(url: URL) {
+        do {
+            let extensionName = url.pathExtension.lowercased()
+            guard extractor.supportedFileExtensions.contains(extensionName) else {
+                throw DemoImportError.unsupportedFileExtension(extensionName)
+            }
+
+            let hasSecurityScopedAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if hasSecurityScopedAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            let directory = try Self.customSamplesDirectory()
+            let destination = Self.uniqueDestination(for: url, in: directory)
+            try FileManager.default.copyItem(at: url, to: destination)
+            importErrorMessage = nil
+            reloadCustomFiles()
+        } catch {
+            importErrorMessage = Self.describe(error)
+        }
     }
 
-    func extract(url: URL) {
+    func removeCustomFile(_ file: FixtureFile) {
+        removeCustomFiles([file])
+    }
+
+    func removeCustomFiles(at offsets: IndexSet) {
+        let files = offsets.compactMap { index in
+            customFiles.indices.contains(index) ? customFiles[index] : nil
+        }
+        removeCustomFiles(files)
+    }
+
+    private func removeCustomFiles(_ files: [FixtureFile]) {
+        guard !files.isEmpty else { return }
+
+        do {
+            for file in files {
+                try FileManager.default.removeItem(at: file.url)
+                if selectedFixtureID == file.id {
+                    extractionTask?.cancel()
+                    selectedFixtureID = nil
+                    selectedSourceName = nil
+                    document = nil
+                    isExtracting = false
+                }
+            }
+            importErrorMessage = nil
+            reloadCustomFiles()
+        } catch {
+            importErrorMessage = "Could not remove custom file: \(Self.describe(error))"
+        }
+    }
+
+    private func extract(url: URL, sourceName: String) {
         extractionTask?.cancel()
+        selectedSourceName = sourceName
+        document = nil
         errorMessage = nil
         isExtracting = true
 
@@ -124,24 +209,57 @@ final class DemoViewModel: ObservableObject {
 
                 guard !Task.isCancelled else { return }
                 self.document = document
-                self.selectedTab = .text
+                self.errorMessage = nil
             } catch {
                 guard !Task.isCancelled else { return }
                 self.document = nil
                 self.errorMessage = Self.describe(error)
             }
 
-            self.isExtracting = false
+            if !Task.isCancelled {
+                self.isExtracting = false
+            }
         }
     }
 
-    func reset() {
-        extractionTask?.cancel()
-        selectedFixtureID = nil
-        document = nil
-        errorMessage = nil
-        selectedTab = .text
-        isExtracting = false
+    private static func customSamplesDirectory() throws -> URL {
+        guard let applicationSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+
+        let directory = applicationSupport
+            .appendingPathComponent("TextExtractorDemo", isDirectory: true)
+            .appendingPathComponent("CustomSamples", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        return directory
+    }
+
+    private static func uniqueDestination(for sourceURL: URL, in directory: URL) -> URL {
+        let fileManager = FileManager.default
+        let originalName = sourceURL.lastPathComponent
+        var destination = directory.appendingPathComponent(originalName)
+        guard fileManager.fileExists(atPath: destination.path) else {
+            return destination
+        }
+
+        let fileExtension = sourceURL.pathExtension
+        let baseName = sourceURL.deletingPathExtension().lastPathComponent
+        var suffix = 2
+
+        while fileManager.fileExists(atPath: destination.path) {
+            let candidateName = fileExtension.isEmpty
+                ? "\(baseName) \(suffix)"
+                : "\(baseName) \(suffix).\(fileExtension)"
+            destination = directory.appendingPathComponent(candidateName)
+            suffix += 1
+        }
+        return destination
     }
 
     private static func describe(_ error: Error) -> String {
@@ -151,17 +269,23 @@ final class DemoViewModel: ObservableObject {
         return error.localizedDescription
     }
 
-    private static var defaultFixturesDirectory: URL {
-        var repositoryRoot = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 {
-            repositoryRoot.deleteLastPathComponent()
+    private static var bundledFixturesDirectory: URL {
+        guard let resourceURL = Bundle.main.resourceURL else {
+            return URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+                .appendingPathComponent("MissingFixtures", isDirectory: true)
         }
-        return repositoryRoot.appendingPathComponent("Fixtures", isDirectory: true)
+        return resourceURL.appendingPathComponent("Fixtures", isDirectory: true)
     }
 }
 
-enum DemoTab: Hashable {
-    case text
-    case segments
-    case metadata
+private enum DemoImportError: LocalizedError {
+    case unsupportedFileExtension(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .unsupportedFileExtension(let fileExtension):
+            let displayExtension = fileExtension.isEmpty ? "this file type" : ".\(fileExtension)"
+            return "TextExtractor does not support \(displayExtension)."
+        }
+    }
 }

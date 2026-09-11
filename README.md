@@ -4,7 +4,7 @@ Production-oriented Swift Package for extracting readable, narration-friendly te
 
 TextExtractor is designed for macOS and iOS applications that need predictable plain-text output, optional timed segments, stable warnings, and bounded processing of user-controlled files.
 
-> **Project status:** This repository is public primarily for transparency and reuse across my own apps. It is not maintained as a traditional open-source project. Issues, pull requests, support requests, and external contributions may not be reviewed or accepted. The API, priorities, and roadmap are driven primarily by the needs of the apps that use this package.
+> **Project status:** This repository is public, but it is not actively maintained as a traditional open-source project.
 
 ## Platforms
 

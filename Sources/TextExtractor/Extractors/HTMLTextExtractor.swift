@@ -86,7 +86,8 @@ public struct HTMLTextExtractor: TextFormatExtractor {
                 upperBound = output.index(after: upperBound)
             }
 
-            output.replaceSubrange(lowerBound..<upperBound, with: separator)
+            let isAtDocumentEdge = lowerBound == output.startIndex || upperBound == output.endIndex
+            output.replaceSubrange(lowerBound..<upperBound, with: isAtDocumentEdge ? "" : separator)
         }
 
         return output
@@ -94,5 +95,6 @@ public struct HTMLTextExtractor: TextFormatExtractor {
 
     private static func isBoundaryWhitespace(_ character: Character) -> Bool {
         character == " " || character == "\t" || character == "\n" || character == "\r"
+            || character == "\u{2028}" || character == "\u{2029}"
     }
 }

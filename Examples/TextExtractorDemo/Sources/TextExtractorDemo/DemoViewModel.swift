@@ -93,10 +93,18 @@ final class DemoViewModel: ObservableObject {
 
     func extractImportedFile(url: URL) {
         selectedFixtureID = nil
-        extract(url: url, sourceName: url.lastPathComponent)
+        extract(
+            url: url,
+            sourceName: url.lastPathComponent,
+            requiresSecurityScopedAccess: true
+        )
     }
 
-    private func extract(url: URL, sourceName: String) {
+    private func extract(
+        url: URL,
+        sourceName: String,
+        requiresSecurityScopedAccess: Bool = false
+    ) {
         extractionTask?.cancel()
         selectedSourceName = sourceName
         document = nil
@@ -106,6 +114,15 @@ final class DemoViewModel: ObservableObject {
         extractionTask = Task {
             do {
                 let document = try await Task.detached(priority: .userInitiated) {
+                    let hasSecurityScopedAccess = requiresSecurityScopedAccess
+                        ? url.startAccessingSecurityScopedResource()
+                        : false
+                    defer {
+                        if hasSecurityScopedAccess {
+                            url.stopAccessingSecurityScopedResource()
+                        }
+                    }
+
                     var options = TextExtractionOptions()
                     options.includeDOCXHeadersAndFooters = true
                     return try TextExtractor().extract(from: url, options: options)

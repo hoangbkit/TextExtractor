@@ -4,25 +4,62 @@ options:
   minimumXcodeGenVersion: 2.46.0
   deploymentTarget:
     macOS: "15.0"
+    iOS: "26.0"
 
 packages:
   TextExtractor:
     path: ../..
 
-targets:
-  TextExtractorDemo:
+targetTemplates:
+  DemoApp:
     type: application
-    platform: macOS
-    deploymentTarget: "15.0"
     sources:
-      - Sources/TextExtractorDemo
+      - path: Sources/TextExtractorDemo
+      - path: ../../Fixtures
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: TextExtractor
         product: TextExtractor
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: pro.byok.TextExtractorDemo
+        PRODUCT_BUNDLE_IDENTIFIER: com.hoangbkit.text.extractor.demo
+        PRODUCT_NAME: TextExtractorDemo
+        DEVELOPMENT_TEAM: J458WW3452
+        CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: TextExtractor Demo
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0
         SWIFT_VERSION: "5.0"
-        CODE_SIGN_ENTITLEMENTS: TextExtractorDemo.entitlements
-        ENABLE_HARDENED_RUNTIME: YES
+
+targets:
+  TextExtractorDemo-macOS:
+    templates:
+      - DemoApp
+    platform: macOS
+    deploymentTarget: "15.0"
+
+  TextExtractorDemo-iOS:
+    templates:
+      - DemoApp
+    platform: iOS
+    deploymentTarget: "26.0"
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1,2"
+
+schemes:
+  TextExtractorDemo-macOS:
+    build:
+      targets:
+        TextExtractorDemo-macOS: all
+    run:
+      config: Debug
+
+  TextExtractorDemo-iOS:
+    build:
+      targets:
+        TextExtractorDemo-iOS: all
+    run:
+      config: Debug

@@ -25,12 +25,13 @@ public struct HTMLTextExtractor: TextFormatExtractor {
         options: TextExtractionOptions
     ) throws -> ExtractedTextDocument {
         let text: String
+        let rawText = try? StringDecoder.decode(data, fileName: fileName)
 
         #if canImport(AppKit) || canImport(UIKit)
         let markedData: Data
-        if let html = try? StringDecoder.decode(data, fileName: fileName) {
+        if let rawText {
             let markedHTML = BasicHTMLTextExtractor.insertingBlockBoundaryMarkers(
-                in: html,
+                in: rawText,
                 marker: Self.blockBoundaryMarker
             )
             markedData = Data(markedHTML.utf8)
@@ -63,7 +64,8 @@ public struct HTMLTextExtractor: TextFormatExtractor {
             title: FileName.title(from: fileName, sourceURL: sourceURL),
             sourceURL: sourceURL,
             format: format,
-            text: text
+            text: text,
+            rawText: rawText
         )
     }
 

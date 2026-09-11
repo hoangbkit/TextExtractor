@@ -176,25 +176,13 @@ private struct ExtractedTextDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(sourceName)
-                        .font(.title2.bold())
-                        .textSelection(.enabled)
-                    Text(format.uppercased())
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                }
-
-                Divider()
-
-                Text(displayedText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-            }
-            .padding()
+            Text(displayedText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
+                .padding()
         }
-        .navigationTitle("Extracted Text")
+        .navigationTitle(sourceName)
+        .navigationSubtitle(format.uppercased())
         .toolbar {
             ToolbarItem {
                 Picker("View", selection: $mode) {

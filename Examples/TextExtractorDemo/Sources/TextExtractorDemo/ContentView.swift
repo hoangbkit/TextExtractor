@@ -101,13 +101,6 @@ struct ContentView: View {
         )
     }
 
-    private var selectedSourceURL: URL? {
-        guard let selectedID = viewModel.selectedFixtureID else { return nil }
-        return (viewModel.customFiles + viewModel.fixtures)
-            .first(where: { $0.id == selectedID })?
-            .url
-    }
-
     private var importErrorPresented: Binding<Bool> {
         Binding(
             get: { viewModel.importErrorMessage != nil },
@@ -130,14 +123,14 @@ struct ContentView: View {
                 systemImage: "exclamationmark.triangle",
                 description: Text(errorMessage)
             )
-        } else if let document = viewModel.document,
-                  let sourceURL = document.sourceURL ?? selectedSourceURL {
+        } else if let document = viewModel.document {
             ExtractedTextDetailView(
                 sourceName: viewModel.selectedSourceName ?? document.title,
                 format: document.format.rawValue,
                 parsedText: document.text,
-                sourceURL: sourceURL
+                rawText: document.rawText
             )
+            .id(viewModel.selectedFixtureID)
         } else {
             ContentUnavailableView(
                 "Select a File",
@@ -169,10 +162,9 @@ private struct ExtractedTextDetailView: View {
     let sourceName: String
     let format: String
     let parsedText: String
-    let sourceURL: URL
+    let rawText: String?
 
     @State private var mode: DetailContentMode = .parsed
-    @State private var rawText: String = "Loading raw source…"
 
     var body: some View {
         ScrollView {
@@ -194,12 +186,6 @@ private struct ExtractedTextDetailView: View {
                 .frame(width: 180)
             }
         }
-        .task(id: sourceURL) {
-            mode = .parsed
-            rawText = await Task.detached(priority: .userInitiated) {
-                Self.readRawSource(from: sourceURL)
-            }.value
-        }
     }
 
     private var displayedText: String {
@@ -207,38 +193,7 @@ private struct ExtractedTextDetailView: View {
         case .parsed:
             return parsedText.isEmpty ? "No text extracted." : parsedText
         case .raw:
-            return rawText
-        }
-    }
-
-    private static func readRawSource(from url: URL) -> String {
-        do {
-            let data = try Data(contentsOf: url)
-            let fileExtension = url.pathExtension.lowercased()
-
-            if fileExtension == "docx" {
-                return "DOCX is a ZIP-based binary format (\(data.count) bytes). Raw source text is not directly readable."
-            }
-
-            let encodings: [String.Encoding] = [
-                .utf8,
-                .utf16,
-                .utf16LittleEndian,
-                .utf16BigEndian,
-                .unicode,
-                .ascii,
-                .isoLatin1
-            ]
-
-            for encoding in encodings {
-                if let text = String(data: data, encoding: encoding) {
-                    return text
-                }
-            }
-
-            return "Binary source (\(data.count) bytes). Raw text preview is unavailable."
-        } catch {
-            return "Could not read raw source: \(error.localizedDescription)"
+            return rawText ?? "Raw source text is unavailable for this binary format."
         }
     }
 }

@@ -140,11 +140,14 @@ struct MyExtractor: TextFormatExtractor {
 let extractor = TextExtractor(extractors: [MyExtractor()])
 ```
 
-## Demo apps
+## Demo app
 
-Both demos use XcodeGen. Generated `.xcodeproj` directories are intentionally ignored and must not be committed.
+The repository has one XcodeGen demo project with shared SwiftUI sources and two application targets:
 
-### macOS 15+
+- `TextExtractorDemo-macOS` — macOS 15+, tested on Intel and Apple Silicon
+- `TextExtractorDemo-iOS` — iOS 26+
+
+Both targets use bundle identifier `com.hoangbkit.text.extractor.demo`. Generated `.xcodeproj` directories are intentionally ignored and must not be committed.
 
 ```bash
 cd Examples/TextExtractorDemo
@@ -152,17 +155,7 @@ xcodegen generate
 open TextExtractorDemo.xcodeproj
 ```
 
-The macOS demo imports files, browses repository fixtures, runs extraction away from the main actor, and displays normalized text, segments, metadata, and warnings.
-
-### iOS 26+
-
-```bash
-cd Examples/TextExtractorIOSDemo
-xcodegen generate
-open TextExtractorIOSDemo.xcodeproj
-```
-
-The iOS demo exercises in-memory extraction and the system document importer with security-scoped file access.
+The demo bundles the checked-in `Fixtures` directory, lists every supported fixture file, extracts the selected sample off the main actor, shows the extracted text in a detail view, and provides an **Open File** button for browsing external files.
 
 ## Development
 
@@ -197,13 +190,13 @@ Timing benchmarks are opt-in so normal CI does not depend on runner speed:
 TEXTEXTRACTOR_RUN_BENCHMARKS=1 swift test --filter Phase5BenchmarkTests
 ```
 
-CI verifies the package and macOS demo on:
+CI verifies the package and unified macOS demo target on:
 
 - Intel macOS 15 (`macos-15-intel`)
 - Apple Silicon macOS 15 (`macos-15`)
 - Apple Silicon macOS 26 (`macos-26`)
 
-CI also generates and builds the iOS demo for a generic iOS Simulator destination on the Apple Silicon macOS 26 runner.
+CI also generates the same demo project and builds the iOS target for a generic iOS Simulator destination on the Apple Silicon macOS 26 runner.
 
 See `docs/TESTING.md` for fixture and regression-test guidance.
 

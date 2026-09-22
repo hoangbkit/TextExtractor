@@ -14,6 +14,7 @@ The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 - XcodeGen project specifications for both demo apps; generated `.xcodeproj` directories are not committed.
 - Automated coverage for the existing short/medium/long fixture corpus.
 - DOCX archive expansion limits for individual entries, cumulative selected content, and archive entry count.
+- OpenDocument Text (`.odt`) extraction for headings, paragraphs, nested lists, tables, tabs, and line breaks, including content sniffing and archive safety limits.
 - Machine-readable `TextExtractionWarning.Code` values.
 - Deterministic unique subtitle segment IDs while preserving source cue IDs in metadata.
 - Encoding provenance and legacy-encoding warnings.
@@ -25,6 +26,7 @@ The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 
 - Minimum supported platforms are now macOS 15 and iOS 26.
 - DOCX content sniffing now verifies that a ZIP contains `word/document.xml` rather than treating every ZIP as DOCX.
+- DOCX and ODT now share the same bounded ZIP entry-count and expanded-size safety implementation.
 - Data-based DOCX extraction reads from an in-memory archive rather than materializing temporary package directories.
 - Text decoding rejects likely binary payloads before permissive legacy fallbacks.
 - UTF-16 BOM handling is strict; conservative BOM-less UTF-16 inference is supported.

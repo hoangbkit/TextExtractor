@@ -53,6 +53,7 @@ Spokio consumes a synchronized copy of TextExtractor, so treat package sync as a
 - [ ] Exercise representative SRT/VTT imports, including rolling captions.
 - [ ] Exercise HTML and RTF imports.
 - [ ] Exercise representative DOCX files containing paragraphs, tables, lists, notes, and optional headers/footers where relevant.
+- [ ] Exercise representative ODT files containing headings, paragraphs, lists, tables, tabs, and line breaks.
 - [ ] Confirm warnings/errors surface appropriately in the host app.
 - [ ] Confirm large/malformed files fail safely without blocking the UI or leaking temporary artifacts.
 

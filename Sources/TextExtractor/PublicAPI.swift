@@ -8,6 +8,7 @@ public enum TextExtractionFormat: String, CaseIterable, Sendable, Equatable {
     case rtf
     case html
     case docx
+    case odt
 
     public var fileExtensions: Set<String> {
         switch self {
@@ -18,6 +19,7 @@ public enum TextExtractionFormat: String, CaseIterable, Sendable, Equatable {
         case .rtf: return ["rtf"]
         case .html: return ["html", "htm"]
         case .docx: return ["docx"]
+        case .odt: return ["odt"]
         }
     }
 }
@@ -135,7 +137,7 @@ public struct ExtractedTextDocument: Sendable, Equatable {
     public var format: TextExtractionFormat
     public var text: String
     /// Decoded source text before format parsing and whitespace normalization.
-    /// Binary container formats such as DOCX leave this value nil.
+    /// Binary container formats such as DOCX and ODT leave this value nil.
     public var rawText: String?
     public var segments: [ExtractedTextSegment]
     public var metadata: [String: String]

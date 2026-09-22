@@ -145,7 +145,7 @@ struct ContentView: View {
         case "srt", "vtt", "webvtt": "captions.bubble"
         case "html", "htm": "globe"
         case "md", "markdown", "mdown", "mkd": "text.document"
-        case "docx": "doc.richtext"
+        case "docx", "odt": "doc.richtext"
         default: "doc.text"
         }
     }

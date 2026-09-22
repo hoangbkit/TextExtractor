@@ -83,4 +83,13 @@ final class FixtureCorpusTests: XCTestCase {
             forbiddenFragments: ["<w:", "word/document.xml"]
         )
     }
+
+    func testODTFixtures() throws {
+        try FixtureSupport.assertReadableFixture(
+            directory: "odt",
+            expectedFormat: .odt,
+            expectedShortText: "OpenDocument Text keeps editable documents portable across office suites.",
+            forbiddenFragments: ["<text:", "content.xml"]
+        )
+    }
 }

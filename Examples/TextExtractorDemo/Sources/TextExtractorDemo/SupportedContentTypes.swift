@@ -8,7 +8,7 @@ enum SupportedContentTypes {
         "vtt", "webvtt",
         "rtf",
         "html", "htm",
-        "docx"
+        "docx", "odt"
     ]
 
     static let readableTextImports: [UTType] = supportedExtensions.compactMap {

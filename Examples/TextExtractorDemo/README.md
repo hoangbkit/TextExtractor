@@ -25,7 +25,7 @@ Choose either demo scheme in Xcode.
 - Lists every bundled file whose extension is supported by `TextExtractor`.
 - Extracts the selected sample away from the main actor and shows the extracted text in the detail view.
 - Provides an **Open File** button using the system file importer for external files.
-- Supports the package's plain text, Markdown, SRT, WebVTT, RTF, HTML, and DOCX extensions.
+- Supports the package's plain text, Markdown, SRT, WebVTT, RTF, HTML, DOCX, and ODT extensions.
 
 The fixture folder is copied into the app bundle by XcodeGen as a folder resource, so the built demo does not depend on the source checkout path at runtime.
 

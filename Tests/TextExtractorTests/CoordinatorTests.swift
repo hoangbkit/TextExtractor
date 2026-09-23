@@ -13,7 +13,7 @@ final class CoordinatorTests: XCTestCase {
 
     func testDefaultExtractorReportsExpectedExtensions() {
         let extensions = TextExtractor().supportedFileExtensions
-        for ext in ["txt", "text", "md", "markdown", "srt", "vtt", "webvtt", "rtf", "html", "htm", "docx"] {
+        for ext in ["txt", "text", "md", "markdown", "srt", "vtt", "webvtt", "rtf", "html", "htm", "doc", "docx", "odt", "pptx"] {
             XCTAssertTrue(extensions.contains(ext), "Missing supported extension: \(ext)")
         }
     }

@@ -67,6 +67,16 @@ It is not intended to be a full browser-grade HTML parser.
 
 RTF extraction uses the Apple attributed-string importer on supported platforms. Formatting is removed while readable text, paragraphs, and encoded text characters are retained. Malformed RTF is normalized to `TextExtractionError.invalidDocument` instead of exposing lower-level Foundation errors.
 
+## PPTX
+
+PPTX extraction follows the slide relationship order declared by the presentation package rather than assuming numeric slide filenames define reading order.
+
+For each slide, readable DrawingML paragraphs and table rows are emitted in document order. Table cells are tab-separated. Non-empty slides are also exposed as deterministic `ExtractedTextSegment` values with slide index and source-part metadata.
+
+Speaker notes are included by default and may be disabled with `includePPTXSpeakerNotes`. Non-narrative note placeholders such as slide number, header, footer, date, and slide-image placeholders are ignored.
+
+PPTX extraction is intentionally reading-oriented. It does not interpret charts, SmartArt, images, animations, or visual positioning as narration.
+
 ## Fixtures and regression coverage
 
 The package CI exercises the checked-in short, medium, and long fixture corpus for every supported text-like format, in addition to targeted unit tests for the behaviors above.

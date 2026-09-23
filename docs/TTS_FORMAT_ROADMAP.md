@@ -11,38 +11,17 @@ PDF and EPUB are intentionally out of scope because they are handled by dedicate
 | Plain text | `.txt`, `.text` | Essential | Supported | Decoding, encoding metadata, whitespace normalization, and `rawText` are available. |
 | Markdown | `.md`, `.markdown`, `.mdown`, `.mkd` | High | Supported | Readable-text extraction and raw Markdown are available. |
 | HTML | `.html`, `.htm` | High | Supported | Semantic block boundaries are preserved as paragraphs, `<br>` remains a line break, and raw HTML is exposed. |
+| Legacy Microsoft Word | `.doc` | Medium | Supported | Readable body text is imported through Apple's native Microsoft Word document importer. Binary source means `rawText` is `nil`. |
 | DOCX | `.docx` | Essential | Supported | Paragraphs, tables, notes, numbering, optional headers/footers, and safety limits are covered. Binary source means `rawText` is `nil`. |
+| OpenDocument Text | `.odt` | High | Supported | Headings, paragraphs, nested lists, tables, tabs, line breaks, content sniffing, and ZIP safety limits are covered. Binary source means `rawText` is `nil`. |
+| PowerPoint | `.pptx` | High | Supported | Slide relationship order, readable text, tables, per-slide segments, optional speaker notes, content sniffing, and ZIP safety limits are covered. Binary source means `rawText` is `nil`. |
 | RTF | `.rtf` | High on Apple platforms | Supported | Parsed text and raw RTF source are available. |
 | SubRip | `.srt` | Medium-high | Supported | Cue parsing, timestamps, duplicate rolling-caption cleanup, and raw source are available. |
 | WebVTT | `.vtt`, `.webvtt` | Medium-high | Supported | Cue parsing, timestamps, settings handling, and raw source are available. |
 
 ## Priority roadmap
 
-### P1 — OpenDocument Text (`.odt`)
-
-**Why:** ODT is the most important missing modern document format after DOCX.
-
-**Implementation direction:**
-- ZIP container parsing with the same archive safety limits used by DOCX
-- parse `content.xml`
-- preserve headings, paragraphs, lists, and tables in reading order
-- optionally inspect styles only when needed for semantic structure
-- expose parsed text; `rawText` should remain `nil` because ODT is a binary ZIP container
-- add generated fixtures covering paragraphs, headings, nested lists, tables, notes, malformed archives, and oversized entries
-
-### P2 — Legacy Microsoft Word (`.doc`)
-
-**Why:** Old Word documents still appear in user libraries and downloads.
-
-**Caution:** This is substantially harder than DOCX because `.doc` is a legacy binary compound format.
-
-**Implementation direction:**
-- prefer a small, well-audited parser/library rather than hand-implementing the entire binary format
-- extract readable body text first; advanced layout fidelity is not required for TTS
-- reject malformed or unsupported structures safely
-- keep raw source unavailable (`rawText == nil`)
-
-### P3 — Rich Text Directory (`.rtfd`)
+### P1 — Rich Text Directory (`.rtfd`)
 
 **Why:** Useful on macOS/iOS and fits the package's Apple-platform focus.
 
@@ -52,7 +31,7 @@ PDF and EPUB are intentionally out of scope because they are handled by dedicate
 - ignore images and unrelated attachments for TTS
 - expose raw RTF source when available
 
-### P4 — Saved Web Archive (`.mhtml`, `.mht`)
+### P2 — Saved Web Archive (`.mhtml`, `.mht`)
 
 **Why:** Users sometimes save webpages as MIME HTML archives and expect them to read like HTML.
 
@@ -63,7 +42,7 @@ PDF and EPUB are intentionally out of scope because they are handled by dedicate
 - ignore binary resources such as images, CSS, fonts, and scripts
 - expose the selected HTML source as `rawText`
 
-### P5 — Apple Pages (`.pages`)
+### P3 — Apple Pages (`.pages`)
 
 **Why:** Relevant to Apple users, but less important than DOCX/ODT.
 
@@ -95,11 +74,9 @@ PDF and EPUB are intentionally out of scope because they are handled by dedicate
 
 For a normal-user TTS app, the package should be considered broadly feature-complete once these are solid:
 
-1. current TXT / Markdown / HTML / DOCX / RTF / SRT / VTT support
-2. ODT
-3. legacy DOC, if a reliable implementation path is available
-4. RTFD
-5. MHTML
+1. current TXT / Markdown / HTML / DOC / DOCX / ODT / PPTX / RTF / SRT / VTT support
+2. RTFD
+3. MHTML
 
 Pages support is valuable but not required for the core completion target.
 

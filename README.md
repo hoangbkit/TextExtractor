@@ -24,7 +24,10 @@ The package manifest intentionally uses string deployment versions so Swift tool
 | WebVTT | `.vtt`, `.webvtt` | Timed segments, cue settings ignored for narration |
 | RTF | `.rtf` | Readable attributed-string text on Apple platforms |
 | HTML | `.html`, `.htm` | Readable text with semantic paragraph boundaries and script/style/noscript removal |
+| Legacy Microsoft Word | `.doc` | Readable body text through Apple's native Word document importer |
 | DOCX | `.docx` | Reading-order OOXML text, tables, common lists, notes, optional headers/footers |
+| OpenDocument Text | `.odt` | Reading-order ODF text with headings, lists, tables, tabs, and line breaks |
+| PowerPoint | `.pptx` | Slides in presentation order with readable text, tables, and optional speaker notes |
 
 PDF and EPUB are intentionally outside this package because they require different extraction and layout strategies.
 
@@ -54,7 +57,7 @@ print(document.segments)
 print(document.warnings)
 ```
 
-`document.text` is the normalized, reading-oriented output. `document.rawText` contains decoded source text before format parsing and whitespace normalization when a meaningful textual source exists. Text-based formats such as TXT, Markdown, HTML, SRT, VTT, and RTF expose it; binary container formats such as DOCX leave it `nil`.
+`document.text` is the normalized, reading-oriented output. `document.rawText` contains decoded source text before format parsing and whitespace normalization when a meaningful textual source exists. Text-based formats such as TXT, Markdown, HTML, SRT, VTT, and RTF expose it; binary document/container formats such as DOC, DOCX, ODT, and PPTX leave it `nil`.
 
 Extraction from in-memory data is also supported:
 
@@ -77,7 +80,7 @@ let document = try await Task.detached(priority: .userInitiated) {
 
 ## Resource limits
 
-`TextExtractionOptions` bounds both source files and DOCX expansion. Current defaults are:
+`TextExtractionOptions` bounds source files and archive-backed document expansion. Current defaults are:
 
 | Option | Default |
 | --- | ---: |
@@ -86,7 +89,7 @@ let document = try await Task.detached(priority: .userInitiated) {
 | `maxExpandedArchiveBytes` | 128 MiB |
 | `maxArchiveEntryCount` | 2,048 |
 
-Limits are enforced before and during relevant DOCX entry extraction. Policy violations fail through `TextExtractionError` rather than leaking ZIPFoundation errors.
+Limits are enforced before and during relevant DOCX, ODT, and PPTX entry extraction. Policy violations fail through `TextExtractionError` rather than leaking ZIPFoundation errors.
 
 ## Warnings and errors
 
@@ -105,7 +108,10 @@ TextExtractor is reading-oriented, not layout-preserving.
 - SRT/VTT retain usable cue text when timing is malformed and emit a warning when appropriate.
 - HTML preserves semantic block boundaries for paragraphs/headings, keeps `<br>` as a line break, prefers Apple attributed-string extraction where available, and has an intentionally approximate lightweight fallback.
 - RTF behavior is based on Apple's attributed-string parser.
+- Legacy DOC uses Apple's native Microsoft Word attributed-string importer for readable body text. It does not attempt to reproduce page layout, floating objects, or Word-specific editing semantics.
 - DOCX preserves logical body order, paragraph boundaries, explicit tabs/breaks, tab-separated table cells, common numbering, visible field results, inserted text, and selected optional parts. It does not reproduce Word page layout, styling, floating-object geometry, or every OOXML feature.
+- ODT reads `content.xml` in document order, preserves headings and paragraphs, keeps list items distinct, renders table rows with tab-separated cells, and preserves explicit tabs/line breaks. It does not reproduce page layout or styling.
+- PPTX follows the presentation relationship order, extracts readable DrawingML text and table rows, exposes one segment per non-empty slide, and includes speaker notes by default. Set `includePPTXSpeakerNotes` to `false` to omit notes. Charts, SmartArt interpretation, animations, images, and visual layout are intentionally not reconstructed.
 
 Detailed contracts and planning:
 

@@ -22,6 +22,8 @@ Warnings also carry a stable `TextExtractionWarning.Code`. `.unspecified` preser
 
 Subtitle source cue IDs are preserved in `segment.metadata["sourceCueID"]` when present. Callers should not treat source cue IDs as unique.
 
+PPTX returns one segment for each non-empty slide. Segment IDs use deterministic slide order (`slide-1`, `slide-2`, ...), with the 1-based slide index and source part path stored in segment metadata.
+
 Phase 2 changes identity only; subtitle text-generation and rolling-caption behavior are intentionally left unchanged for the parser-fidelity phase.
 
 ## Extractor dispatch
@@ -51,3 +53,5 @@ Extraction remains synchronous. Applications should move expensive extraction of
 - `maxArchiveEntryCount`
 
 Archive-backed extractors must enforce declared and actual expansion against these limits.
+
+`includePPTXSpeakerNotes` is an additive defaulted option. It defaults to `true`; callers that want slide-visible text only may set it to `false` without changing extractor dispatch.

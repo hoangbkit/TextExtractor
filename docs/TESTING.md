@@ -61,9 +61,12 @@ Tests/TextExtractorTests/
   SubtitleExtractorTests.swift
   HTMLTextExtractorTests.swift
   RTFTextExtractorTests.swift
+  DOCTextExtractorTests.swift
   DOCXTextExtractorTests.swift
   DOCXSemanticsTests.swift
   DOCXFailureTests.swift
+  ODTTextExtractorTests.swift
+  PPTXTextExtractorTests.swift
   StringDecoderTests.swift
   StringNormalizerTests.swift
   SecurityAndLimitsTests.swift
@@ -77,13 +80,13 @@ Tests/TextExtractorTests/
 
 Keep extractor-specific assertions in the corresponding test file. Cross-format coordinator behavior and global limits belong in `CoordinatorTests`, `APIContractTests`, or `SecurityAndLimitsTests` as appropriate.
 
-`FixtureSupport` is the shared home for repository fixture discovery, temporary archive creation, archive cleanup, and temp-directory inspection. DOCX/ZIP-based tests should reuse these helpers rather than carrying local ZIPFoundation fixture builders; this keeps entry ordering, cleanup, and ZIP API usage consistent across the suite.
+`FixtureSupport` is the shared home for repository fixture discovery, temporary archive creation, archive cleanup, and temp-directory inspection. DOCX/ODT/PPTX/ZIP-based tests should reuse these helpers rather than carrying local ZIPFoundation fixture builders; this keeps entry ordering, cleanup, and ZIP API usage consistent across the suite.
 
 ## Fixture corpus
 
 Repository fixtures live under `Fixtures/<extension>/`.
 
-The baseline corpus intentionally contains `short`, `medium`, and `long` samples for each supported extension. `FixtureCorpusTests` automatically discovers these files from the checked-out repository and runs them through the public `TextExtractor` API.
+The baseline corpus contains `short`, `medium`, and `long` samples for text-like/container formats with checked-in fixtures. Legacy `.doc` uses focused native round-trip tests that generate actual Microsoft Word format data through Apple's attributed-string exporter. `FixtureCorpusTests` automatically discovers these files from the checked-out repository and runs them through the public `TextExtractor` API.
 
 Current fixture directories:
 
@@ -96,6 +99,8 @@ Current fixture directories:
 - `Fixtures/html`
 - `Fixtures/htm`
 - `Fixtures/docx`
+- `Fixtures/odt`
+- `Fixtures/pptx`
 
 ## Adding a regression fixture
 

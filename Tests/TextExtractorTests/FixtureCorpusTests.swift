@@ -83,4 +83,22 @@ final class FixtureCorpusTests: XCTestCase {
             forbiddenFragments: ["<w:", "word/document.xml"]
         )
     }
+
+    func testODTFixtures() throws {
+        try FixtureSupport.assertReadableFixture(
+            directory: "odt",
+            expectedFormat: .odt,
+            expectedShortText: "OpenDocument Text keeps editable documents portable across office suites.",
+            forbiddenFragments: ["<text:", "content.xml"]
+        )
+    }
+
+    func testPPTXFixtures() throws {
+        try FixtureSupport.assertReadableFixture(
+            directory: "pptx",
+            expectedFormat: .pptx,
+            expectedShortText: "PowerPoint slides can become clear, narration-ready text.",
+            forbiddenFragments: ["<p:", "<a:", "presentation.xml"]
+        )
+    }
 }

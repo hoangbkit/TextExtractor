@@ -146,6 +146,7 @@ struct ContentView: View {
         case "html", "htm": "globe"
         case "md", "markdown", "mdown", "mkd": "text.document"
         case "doc", "docx", "odt": "doc.richtext"
+        case "pptx": "rectangle.on.rectangle"
         default: "doc.text"
         }
     }

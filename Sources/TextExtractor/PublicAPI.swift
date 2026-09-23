@@ -10,6 +10,7 @@ public enum TextExtractionFormat: String, CaseIterable, Sendable, Equatable {
     case doc
     case docx
     case odt
+    case pptx
 
     public var fileExtensions: Set<String> {
         switch self {
@@ -22,6 +23,7 @@ public enum TextExtractionFormat: String, CaseIterable, Sendable, Equatable {
         case .doc: return ["doc"]
         case .docx: return ["docx"]
         case .odt: return ["odt"]
+        case .pptx: return ["pptx"]
         }
     }
 }
@@ -44,6 +46,7 @@ public struct TextExtractionOptions: Sendable, Equatable {
     public var includeDOCXFootnotes: Bool
     public var includeDOCXEndnotes: Bool
     public var includeDOCXHeadersAndFooters: Bool
+    public var includePPTXSpeakerNotes: Bool
     public var maxArchiveEntryBytes: Int
     public var maxExpandedArchiveBytes: Int
     public var maxArchiveEntryCount: Int
@@ -61,6 +64,7 @@ public struct TextExtractionOptions: Sendable, Equatable {
         includeDOCXFootnotes: Bool = true,
         includeDOCXEndnotes: Bool = true,
         includeDOCXHeadersAndFooters: Bool = false,
+        includePPTXSpeakerNotes: Bool = true,
         maxArchiveEntryBytes: Int = 64 * 1024 * 1024,
         maxExpandedArchiveBytes: Int = 128 * 1024 * 1024,
         maxArchiveEntryCount: Int = 2_048
@@ -77,6 +81,7 @@ public struct TextExtractionOptions: Sendable, Equatable {
         self.includeDOCXFootnotes = includeDOCXFootnotes
         self.includeDOCXEndnotes = includeDOCXEndnotes
         self.includeDOCXHeadersAndFooters = includeDOCXHeadersAndFooters
+        self.includePPTXSpeakerNotes = includePPTXSpeakerNotes
         self.maxArchiveEntryBytes = maxArchiveEntryBytes
         self.maxExpandedArchiveBytes = maxExpandedArchiveBytes
         self.maxArchiveEntryCount = maxArchiveEntryCount
@@ -139,7 +144,7 @@ public struct ExtractedTextDocument: Sendable, Equatable {
     public var format: TextExtractionFormat
     public var text: String
     /// Decoded source text before format parsing and whitespace normalization.
-    /// Binary document/container formats such as DOC, DOCX, and ODT leave this value nil.
+    /// Binary document/container formats such as DOC, DOCX, ODT, and PPTX leave this value nil.
     public var rawText: String?
     public var segments: [ExtractedTextSegment]
     public var metadata: [String: String]

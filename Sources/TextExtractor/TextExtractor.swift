@@ -13,7 +13,8 @@ public final class TextExtractor: Sendable {
             HTMLTextExtractor(),
             DOCTextExtractor(),
             DOCXTextExtractor(),
-            ODTTextExtractor()
+            ODTTextExtractor(),
+            PPTXTextExtractor()
         ]
     }
 

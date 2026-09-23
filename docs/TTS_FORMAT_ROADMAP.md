@@ -11,7 +11,7 @@ PDF and EPUB are intentionally out of scope because they are handled by dedicate
 | Plain text | `.txt`, `.text` | Essential | Supported | Decoding, encoding metadata, whitespace normalization, and `rawText` are available. |
 | Markdown | `.md`, `.markdown`, `.mdown`, `.mkd` | High | Supported | Readable-text extraction and raw Markdown are available. |
 | HTML | `.html`, `.htm` | High | Supported | Semantic block boundaries are preserved as paragraphs, `<br>` remains a line break, and raw HTML is exposed. |
-| Legacy Microsoft Word | `.doc` | Medium | Supported | Readable body text is imported through Apple's native Microsoft Word document importer. Binary source means `rawText` is `nil`. |
+| Legacy Microsoft Word | `.doc` | Medium | macOS only | Readable body text is imported through Apple's native Microsoft Word document importer. Binary source means `rawText` is `nil`. |
 | DOCX | `.docx` | Essential | Supported | Paragraphs, tables, notes, numbering, optional headers/footers, and safety limits are covered. Binary source means `rawText` is `nil`. |
 | OpenDocument Text | `.odt` | High | Supported | Headings, paragraphs, nested lists, tables, tabs, line breaks, content sniffing, and ZIP safety limits are covered. Binary source means `rawText` is `nil`. |
 | PowerPoint | `.pptx` | High | Supported | Slide relationship order, readable text, tables, per-slide segments, optional speaker notes, content sniffing, and ZIP safety limits are covered. Binary source means `rawText` is `nil`. |

@@ -15,6 +15,7 @@ The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 - Automated coverage for the existing short/medium/long fixture corpus.
 - DOCX archive expansion limits for individual entries, cumulative selected content, and archive entry count.
 - OpenDocument Text (`.odt`) extraction for headings, paragraphs, nested lists, tables, tabs, and line breaks, including content sniffing and archive safety limits.
+- Legacy Microsoft Word (`.doc`) extraction through Apple's native Word document importer, including malformed-input handling and native round-trip coverage.
 - Machine-readable `TextExtractionWarning.Code` values.
 - Deterministic unique subtitle segment IDs while preserving source cue IDs in metadata.
 - Encoding provenance and legacy-encoding warnings.

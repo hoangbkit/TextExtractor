@@ -11,6 +11,7 @@ public final class TextExtractor: Sendable {
             VTTSubtitleExtractor(),
             RTFTextExtractor(),
             HTMLTextExtractor(),
+            DOCTextExtractor(),
             DOCXTextExtractor(),
             ODTTextExtractor()
         ]

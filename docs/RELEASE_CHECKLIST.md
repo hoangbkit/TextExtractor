@@ -55,6 +55,7 @@ Spokio consumes a synchronized copy of TextExtractor, so treat package sync as a
 - [ ] Exercise representative legacy DOC files containing multiple paragraphs and non-ASCII text.
 - [ ] Exercise representative DOCX files containing paragraphs, tables, lists, notes, and optional headers/footers where relevant.
 - [ ] Exercise representative ODT files containing headings, paragraphs, lists, tables, tabs, and line breaks.
+- [ ] Exercise representative PPTX files containing multiple slides, tables, and speaker notes; verify slide order and note inclusion/exclusion.
 - [ ] Confirm warnings/errors surface appropriately in the host app.
 - [ ] Confirm large/malformed files fail safely without blocking the UI or leaking temporary artifacts.
 

@@ -66,6 +66,7 @@ Tests/TextExtractorTests/
   DOCXSemanticsTests.swift
   DOCXFailureTests.swift
   ODTTextExtractorTests.swift
+  PPTXTextExtractorTests.swift
   StringDecoderTests.swift
   StringNormalizerTests.swift
   SecurityAndLimitsTests.swift
@@ -79,7 +80,7 @@ Tests/TextExtractorTests/
 
 Keep extractor-specific assertions in the corresponding test file. Cross-format coordinator behavior and global limits belong in `CoordinatorTests`, `APIContractTests`, or `SecurityAndLimitsTests` as appropriate.
 
-`FixtureSupport` is the shared home for repository fixture discovery, temporary archive creation, archive cleanup, and temp-directory inspection. DOCX/ODT/ZIP-based tests should reuse these helpers rather than carrying local ZIPFoundation fixture builders; this keeps entry ordering, cleanup, and ZIP API usage consistent across the suite.
+`FixtureSupport` is the shared home for repository fixture discovery, temporary archive creation, archive cleanup, and temp-directory inspection. DOCX/ODT/PPTX/ZIP-based tests should reuse these helpers rather than carrying local ZIPFoundation fixture builders; this keeps entry ordering, cleanup, and ZIP API usage consistent across the suite.
 
 ## Fixture corpus
 
@@ -99,6 +100,7 @@ Current fixture directories:
 - `Fixtures/htm`
 - `Fixtures/docx`
 - `Fixtures/odt`
+- `Fixtures/pptx`
 
 ## Adding a regression fixture
 

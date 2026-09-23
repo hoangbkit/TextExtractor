@@ -14,6 +14,7 @@ PDF and EPUB are intentionally out of scope because they are handled by dedicate
 | Legacy Microsoft Word | `.doc` | Medium | Supported | Readable body text is imported through Apple's native Microsoft Word document importer. Binary source means `rawText` is `nil`. |
 | DOCX | `.docx` | Essential | Supported | Paragraphs, tables, notes, numbering, optional headers/footers, and safety limits are covered. Binary source means `rawText` is `nil`. |
 | OpenDocument Text | `.odt` | High | Supported | Headings, paragraphs, nested lists, tables, tabs, line breaks, content sniffing, and ZIP safety limits are covered. Binary source means `rawText` is `nil`. |
+| PowerPoint | `.pptx` | High | Supported | Slide relationship order, readable text, tables, per-slide segments, optional speaker notes, content sniffing, and ZIP safety limits are covered. Binary source means `rawText` is `nil`. |
 | RTF | `.rtf` | High on Apple platforms | Supported | Parsed text and raw RTF source are available. |
 | SubRip | `.srt` | Medium-high | Supported | Cue parsing, timestamps, duplicate rolling-caption cleanup, and raw source are available. |
 | WebVTT | `.vtt`, `.webvtt` | Medium-high | Supported | Cue parsing, timestamps, settings handling, and raw source are available. |
@@ -73,7 +74,7 @@ PDF and EPUB are intentionally out of scope because they are handled by dedicate
 
 For a normal-user TTS app, the package should be considered broadly feature-complete once these are solid:
 
-1. current TXT / Markdown / HTML / DOC / DOCX / ODT / RTF / SRT / VTT support
+1. current TXT / Markdown / HTML / DOC / DOCX / ODT / PPTX / RTF / SRT / VTT support
 2. RTFD
 3. MHTML
 

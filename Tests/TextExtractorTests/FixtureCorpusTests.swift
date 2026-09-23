@@ -92,4 +92,13 @@ final class FixtureCorpusTests: XCTestCase {
             forbiddenFragments: ["<text:", "content.xml"]
         )
     }
+
+    func testPPTXFixtures() throws {
+        try FixtureSupport.assertReadableFixture(
+            directory: "pptx",
+            expectedFormat: .pptx,
+            expectedShortText: "PowerPoint slides can become clear, narration-ready text.",
+            forbiddenFragments: ["<p:", "<a:", "presentation.xml"]
+        )
+    }
 }

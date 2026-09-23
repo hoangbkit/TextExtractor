@@ -4,18 +4,7 @@ public final class TextExtractor: Sendable {
     private let extractors: [any TextFormatExtractor]
 
     public init(extractors: [any TextFormatExtractor]? = nil) {
-        self.extractors = extractors ?? [
-            PlainTextExtractor(),
-            MarkdownTextExtractor(),
-            SRTSubtitleExtractor(),
-            VTTSubtitleExtractor(),
-            RTFTextExtractor(),
-            HTMLTextExtractor(),
-            DOCTextExtractor(),
-            DOCXTextExtractor(),
-            ODTTextExtractor(),
-            PPTXTextExtractor()
-        ]
+        self.extractors = extractors ?? Self.defaultExtractors()
     }
 
     public var supportedFormats: [TextExtractionFormat] { extractors.map(\.format) }
@@ -71,5 +60,25 @@ public final class TextExtractor: Sendable {
             throw TextExtractionError.emptyDocument
         }
         return document
+    }
+
+    private static func defaultExtractors() -> [any TextFormatExtractor] {
+        var result: [any TextFormatExtractor] = [
+            PlainTextExtractor(),
+            MarkdownTextExtractor(),
+            SRTSubtitleExtractor(),
+            VTTSubtitleExtractor(),
+            RTFTextExtractor(),
+            HTMLTextExtractor()
+        ]
+
+        #if os(macOS)
+        result.append(DOCTextExtractor())
+        #endif
+
+        result.append(DOCXTextExtractor())
+        result.append(ODTTextExtractor())
+        result.append(PPTXTextExtractor())
+        return result
     }
 }

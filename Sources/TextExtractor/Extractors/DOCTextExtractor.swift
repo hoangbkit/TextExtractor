@@ -1,8 +1,6 @@
 import Foundation
 #if canImport(AppKit)
 import AppKit
-#elseif canImport(UIKit)
-import UIKit
 #endif
 
 public struct DOCTextExtractor: TextFormatExtractor {
@@ -22,7 +20,7 @@ public struct DOCTextExtractor: TextFormatExtractor {
         sourceURL: URL?,
         options: TextExtractionOptions
     ) throws -> ExtractedTextDocument {
-        #if canImport(AppKit) || canImport(UIKit)
+        #if canImport(AppKit)
         let attributed: NSAttributedString
         do {
             attributed = try NSAttributedString(

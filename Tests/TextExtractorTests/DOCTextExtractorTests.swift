@@ -2,13 +2,11 @@ import Foundation
 import XCTest
 #if canImport(AppKit)
 import AppKit
-#elseif canImport(UIKit)
-import UIKit
 #endif
 
 @testable import TextExtractor
 
-#if canImport(AppKit) || canImport(UIKit)
+#if canImport(AppKit)
 final class DOCTextExtractorTests: XCTestCase {
     func testDOCExtractionRoundTripsNativeWordFormat() throws {
         let data = try makeDOCData(

@@ -13,14 +13,14 @@ No changes yet.
 ### Added
 
 - OpenDocument Text (`.odt`) support with headings, paragraphs, nested lists, tables, tabs, line breaks, content sniffing, and archive safety limits.
-- Legacy Microsoft Word (`.doc`) support using Apple's native Word document importer for readable body text.
+- Legacy Microsoft Word (`.doc`) support on macOS using Apple's native Word document importer for readable body text.
 - PowerPoint (`.pptx`) support with presentation-order slide extraction, slide text, tables, per-slide segments, optional speaker notes, content sniffing, and archive safety limits.
 - `includePPTXSpeakerNotes` extraction option, enabled by default.
 
 ### Changed
 
 - DOCX, ODT, and PPTX now share the same bounded ZIP entry-count and expanded-size safety implementation.
-- Demo app importing now supports DOC, ODT, and PPTX.
+- Demo app importing now supports ODT and PPTX on macOS/iOS, plus legacy DOC on macOS.
 
 ### Compatibility notes
 

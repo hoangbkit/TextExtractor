@@ -5,17 +5,33 @@ import XCTest
 
 final class CoordinatorTests: XCTestCase {
     func testDefaultExtractorReportsAllSupportedFormats() {
+        var expected = Set(TextExtractionFormat.allCases)
+        #if !os(macOS)
+        expected.remove(.doc)
+        #endif
+
         XCTAssertEqual(
             Set(TextExtractor().supportedFormats),
-            Set(TextExtractionFormat.allCases)
+            expected
         )
     }
 
     func testDefaultExtractorReportsExpectedExtensions() {
         let extensions = TextExtractor().supportedFileExtensions
-        for ext in ["txt", "text", "md", "markdown", "srt", "vtt", "webvtt", "rtf", "html", "htm", "doc", "docx", "odt", "pptx"] {
+        let commonExtensions = [
+            "txt", "text", "md", "markdown", "srt", "vtt", "webvtt",
+            "rtf", "html", "htm", "docx", "odt", "pptx"
+        ]
+
+        for ext in commonExtensions {
             XCTAssertTrue(extensions.contains(ext), "Missing supported extension: \(ext)")
         }
+
+        #if os(macOS)
+        XCTAssertTrue(extensions.contains("doc"), "Missing supported extension: doc")
+        #else
+        XCTAssertFalse(extensions.contains("doc"), "Legacy DOC should be macOS-only")
+        #endif
     }
 
     func testUnsupportedExtensionThrowsDomainError() {

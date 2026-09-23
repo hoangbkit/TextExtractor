@@ -76,11 +76,9 @@ public final class TextExtractor: Sendable {
         result.append(DOCTextExtractor())
         #endif
 
-        result.append(contentsOf: [
-            DOCXTextExtractor(),
-            ODTTextExtractor(),
-            PPTXTextExtractor()
-        ])
+        result.append(DOCXTextExtractor())
+        result.append(ODTTextExtractor())
+        result.append(PPTXTextExtractor())
         return result
     }
 }

@@ -28,6 +28,9 @@ public struct ODTTextExtractor: TextFormatExtractor {
 
             var mimetypeData = Data()
             _ = try archive.extract(mimetypeEntry) { chunk in
+                guard mimetypeData.count <= 256 - chunk.count else {
+                    throw TextExtractionError.invalidDocument(reason: "ODT mimetype entry is unexpectedly large.")
+                }
                 mimetypeData.append(chunk)
             }
 

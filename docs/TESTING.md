@@ -61,6 +61,7 @@ Tests/TextExtractorTests/
   SubtitleExtractorTests.swift
   HTMLTextExtractorTests.swift
   RTFTextExtractorTests.swift
+  DOCTextExtractorTests.swift
   DOCXTextExtractorTests.swift
   DOCXSemanticsTests.swift
   DOCXFailureTests.swift
@@ -84,7 +85,7 @@ Keep extractor-specific assertions in the corresponding test file. Cross-format 
 
 Repository fixtures live under `Fixtures/<extension>/`.
 
-The baseline corpus intentionally contains `short`, `medium`, and `long` samples for each supported extension. `FixtureCorpusTests` automatically discovers these files from the checked-out repository and runs them through the public `TextExtractor` API.
+The baseline corpus contains `short`, `medium`, and `long` samples for text-like/container formats with checked-in fixtures. Legacy `.doc` uses focused native round-trip tests that generate actual Microsoft Word format data through Apple's attributed-string exporter. `FixtureCorpusTests` automatically discovers these files from the checked-out repository and runs them through the public `TextExtractor` API.
 
 Current fixture directories:
 

@@ -52,7 +52,7 @@ Spokio consumes a synchronized copy of TextExtractor, so treat package sync as a
 - [ ] Exercise representative TXT and Markdown imports.
 - [ ] Exercise representative SRT/VTT imports, including rolling captions.
 - [ ] Exercise HTML and RTF imports.
-- [ ] Exercise representative legacy DOC files containing multiple paragraphs and non-ASCII text.
+- [ ] On macOS, exercise representative legacy DOC files containing multiple paragraphs and non-ASCII text.
 - [ ] Exercise representative DOCX files containing paragraphs, tables, lists, notes, and optional headers/footers where relevant.
 - [ ] Exercise representative ODT files containing headings, paragraphs, lists, tables, tabs, and line breaks.
 - [ ] Exercise representative PPTX files containing multiple slides, tables, and speaker notes; verify slide order and note inclusion/exclusion.

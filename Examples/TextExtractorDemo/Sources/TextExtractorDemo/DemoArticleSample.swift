@@ -1,4 +1,5 @@
 import Foundation
+import TextExtractorWeb
 
 /// Offline inputs used only by the demo. Their URLs represent the original
 /// source pages for metadata and relative-link resolution, not network fetches.
@@ -34,6 +35,16 @@ struct DemoArticleSample: Identifiable, Hashable, Sendable {
             .appendingPathComponent("ArticleSamples", isDirectory: true)
             .appendingPathComponent(fileName, isDirectory: false)
     }
+}
+
+/// Stored canonical article output. A saved URL never needs to be fetched
+/// again just to open its typed block inspector.
+struct DemoSavedArticle: Identifiable, Codable, Sendable {
+    let id: String
+    let article: WebArticleResult
+
+    var title: String { article.title }
+    var sourceURL: URL { article.sourceURL }
 }
 
 enum DemoSidebarSelection: Hashable {

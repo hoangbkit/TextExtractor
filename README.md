@@ -223,7 +223,7 @@ xcodegen generate
 open TextExtractorDemo.xcodeproj
 ```
 
-The demo bundles the checked-in `Fixtures` directory, lists supported document fixtures, extracts the selected sample off the main actor, shows parsed and raw text in a detail view, supports importing external files into a persistent Custom section, and provides removal on both platforms. A separate **Web Articles** section offers offline HTML samples and an inspector with **Blocks**, **Plain Text**, and **Metadata** modes; selecting those samples uses `TextExtractorWeb`, not the original HTML extractor. See [the demo README](Examples/TextExtractorDemo/README.md).
+The demo's **Library** sidebar lists persisted user-added documents and URL articles, followed by bundled file and article samples. The toolbar **+** menu provides **Browse Files** and **Add Article URL**. The demo (not `TextExtractorWeb`) fetches supplied HTTPS pages once and stores the extracted typed result locally for offline reopening. Article details offer **Blocks**, **Plain Text**, and **Metadata** modes in a toolbar options sheet; document details retain **Parsed** and **Raw** modes. Existing generic HTML extraction and external file imports are preserved. See [the demo README](Examples/TextExtractorDemo/README.md).
 
 ## Development
 

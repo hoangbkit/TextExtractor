@@ -72,6 +72,69 @@ Location: `Tests/TextExtractorWebTests/Fixtures/`.
 
 Large inputs, malformed encodings (including non-UTF-8 byte sequences), invalid heading values, duplicate IDs, cancellation and deeply nested DOM structures may be **generated in tests** rather than committed as megabyte fixtures.
 
+## Pass 2 implementation: offline semantic extraction
+
+`WebArticleExtractor.extract(html:sourceURL:options:)` is implemented in
+`Sources/TextExtractorWeb/WebArticleExtractor.swift`. It operates on supplied
+HTML bytes; it does **not** fetch a URL.
+
+- Reader selection: **SwiftReadability 0.3.3**, pinned. The parser runs in the
+  calling task, with `ReadabilityOptions.maxElemsToParse` set to the configured
+  element limit.
+- Structure: **SwiftSoup 2.13.6**, pinned. The selected article fragment is
+  walked in DOM source order; block classification is retained during text
+  normalization. Headings, paragraphs, list items, blockquotes, code,
+  tables and captions are typed, with leftover meaningful unstructured text
+  conservatively preserved.
+- Deduplication is **structural**, not global string deduplication: paragraph
+  descendants of list items and quotes are emitted once as their owning block,
+  while identically worded separate occurrences remain intact.
+- Normalization collapses whitespace for ordinary prose. Intentional newlines
+  in code and tab/newline-separated table text survive.
+- IDs use `block-%06d` based on finalized source occurrence order. The
+  renderer projects canonical blocks as plain text with `\n\n` separators.
+  The title is prepended as a single level-1 heading **only if no level-1
+  heading survives** and the extractor supplies a title.
+- A webpage without at least `minimumReadableCharacterCount` non-heading
+  characters is rejected; there is **no fallback** to dumping site navigation.
+
+Default `WebArticleExtractionOptions` boundaries are:
+
+| Setting | Default |
+| --- | ---: |
+| `maxInputBytes` | 5 MiB |
+| `minimumReadableCharacterCount` | 40 |
+| `maxBlocks` | 10,000 |
+| `maxDOMDepth` | 128 |
+| `maxDOMElements` | 50,000 |
+
+The maximum source size is checked **before** HTML decoding. An element-count
+limit is enforced by Readability **after** its initial SwiftSoup parse, so this
+is **not** a full CPU/memory isolation sandbox: callers should operate off the
+main actor and enforce their own execution-time/cancellation budget for
+untrusted inputs.
+
+UTF-8 (with optional BOM) and BOM-marked UTF-16 are recognized; Windows-1252
+is a conservative fallback. Embedded NULs are rejected. The original HTML is
+not retained in the returned result. Metadata is sourced from Readability;
+missing values are not invented.
+
+**Toolchain caveat:** SwiftReadability 0.3.3 requires **Swift 6.2**. Even when
+its product is linked only by the optional web target, SwiftPM may still need
+to resolve its manifest for ordinary core consumers. Verify existing macOS 15
+CI/toolchain compatibility explicitly before releasing; do not change core
+source or deployment minimums to hide this compatibility issue.
+
+### Parser acceptance tests
+
+`WebArticleExtractorTests` executes the offline golden fixture manifest,
+negative/non-article fixtures, text/typed-block parity, deterministic identity,
+metadata, size/URL limitations and cancellation. `WebArticleDOMTests` tests
+semantic DOM reconstruction separately from Readability's article selection.
+
+The implementation and tests are committed on the PR. **Apple CI/test execution
+remains unverified until the now-manual workflows are dispatched.**
+
 ## Pass 1 exit criteria
 
 - [x] Standalone product/target exists; no source under `Sources/TextExtractor/**` changes.

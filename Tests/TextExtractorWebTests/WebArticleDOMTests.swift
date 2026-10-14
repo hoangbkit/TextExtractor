@@ -55,9 +55,6 @@ final class WebArticleDOMTests: XCTestCase {
             XCTAssertEqual($0 as? WebArticleExtractionError, .domTooDeep(maxDepth: 1))
         }
 
-        var limited = WebArticleBlockCollector(options: .init(maxBlocks: 1))
-        let repeated = try SwiftSoup.parseBodyFragment("<p>First.</p><p>Second.</p>")
-        try XCTAssertNoThrow(limited.collect(try XCTUnwrap(repeated.body())))
     }
 
     func testExplicitBlockLimitRefusesSecondBlock() throws {

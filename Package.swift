@@ -8,7 +8,8 @@ let package = Package(
         .iOS("26.0")
     ],
     products: [
-        .library(name: "TextExtractor", targets: ["TextExtractor"])
+        .library(name: "TextExtractor", targets: ["TextExtractor"]),
+        .library(name: "TextExtractorWeb", targets: ["TextExtractorWeb"])
     ],
     dependencies: [
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.19")
@@ -19,6 +20,15 @@ let package = Package(
             dependencies: [
                 .product(name: "ZIPFoundation", package: "ZIPFoundation")
             ]
+        ),
+        .target(
+            name: "TextExtractorWeb",
+            dependencies: []
+        ),
+        .testTarget(
+            name: "TextExtractorWebTests",
+            dependencies: ["TextExtractorWeb"],
+            resources: [.process("Fixtures")]
         ),
         .testTarget(
             name: "TextExtractorTests",

@@ -226,6 +226,7 @@ private struct ExtractedTextDetailView: View {
     let rawText: String?
 
     @State private var mode: DetailContentMode = .parsed
+    @State private var showsOptions = false
 
     var body: some View {
         ScrollView {
@@ -237,16 +238,50 @@ private struct ExtractedTextDetailView: View {
         .navigationTitle(sourceName)
         .navigationSubtitle(format.uppercased())
         .toolbar {
-            ToolbarItem {
-                Picker("View", selection: $mode) {
-                    ForEach(DetailContentMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showsOptions = true
+                } label: {
+                    Label("Document Options", systemImage: "slider.horizontal.3")
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 180)
+                .accessibilityLabel("Document Options")
             }
         }
+        .sheet(isPresented: $showsOptions) {
+            optionsSheet
+        }
+    }
+
+    private var optionsSheet: some View {
+        NavigationStack {
+            Form {
+                Section("Content View") {
+                    Picker("Show", selection: $mode) {
+                        ForEach(DetailContentMode.allCases) { choice in
+                            Text(choice.rawValue).tag(choice)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                }
+                Section {
+                    Text("Parsed shows the readable extracted document. Raw shows the original decoded source text when available.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Document Options")
+#if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+#endif
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { showsOptions = false }
+                }
+            }
+        }
+#if os(macOS)
+        .frame(minWidth: 380, idealWidth: 440, minHeight: 310)
+#endif
     }
 
     private var displayedText: String {

@@ -1,10 +1,10 @@
-# TextExtractorWeb: Pass 1 API and fixture contract
+# TextExtractorWeb — standalone article API and normalization contract
 
 Tracking: [TextExtractor issue #5](https://github.com/hoangbkit/TextExtractor/issues/5).
 
 ## Scope boundary
 
-This deliverable is an **independent, opt-in SwiftPM product**, `TextExtractorWeb`. In Pass 1 the package contains semantic **value types, a pure renderer, baseline model tests, and offline fixtures**; it does not yet include a functioning `WebArticleExtractor`. Parsing and SwiftReadability/SwiftSoup dependencies belong to Pass 2.
+This deliverable is an **independent, opt-in SwiftPM product**, `TextExtractorWeb`. It contains its own typed semantic values, pure plain-text renderer, offline main-article extractor, dedicated fixtures and tests, and a companion demo inspector. The core `TextExtractor` public models and source files remain unchanged.
 
 **Do not modify `Sources/TextExtractor/**`, existing `TextExtractor` public types, format dispatch, `HTMLTextExtractor`, options, or semantics.** `Package.swift` may add a separate product/target and target-scoped dependencies. Future app integrations and a web fetcher are out of scope.
 
@@ -15,7 +15,7 @@ This deliverable is an **independent, opt-in SwiftPM product**, `TextExtractorWe
 - `WebArticleResult`: immutable `title`, `sourceURL`, ordered `blocks` and `metadata`. `text` is a **computed convenience projection** of `blocks`, not a second persisted copy.
 - `WebArticleTextRenderer.render`: pure formatting of finalized blocks, joining adjacent block text with exactly `\n\n`. Internal line breaks are preserved (not reclassified); no TTS chunking occurs.
 - Model values conform to `Hashable`, `Codable`, `Sendable` where appropriate. Decoding applies the same ID/title/text validation as construction.
-- `WebArticleModelError`: invalid result/value errors. Parser errors and cancellation are **separate** and will be specified in Pass 2.
+- `WebArticleModelError`: invalid result/value errors. `WebArticleExtractionError`: URL, encoding, article selection and resource-limit errors. Cancellation propagates as `CancellationError`.
 
 ### Identity and ordering
 
@@ -25,7 +25,7 @@ A semantic block is not a TTS chunk. List items, headings and paragraphs should 
 
 ### Conversion invariants
 
-1. Extract the main article HTML with SwiftReadability (Pass 2).
+1. Extract the main article HTML with SwiftReadability.
 2. Walk the cleaned DOM with SwiftSoup **in source order**, keeping kind information before flattening. Distinguish `h1`–`h6`, `p`, `li`, `blockquote`, `pre`/`code`, `table`, `figcaption`; conservatively preserve other meaningful text as `preservedContent`.
 3. Normalize whitespace and decode entities in a bounded pass without destroying legitimate code/table breaks or structural boundaries. Do not emit a `p` again when its enclosing `li` or `blockquote` already owns its content.
 4. Assign deterministic occurrence-distinct IDs to the finalized blocks.
@@ -46,14 +46,14 @@ The `metadata` dictionary uses stable keys:
 
 Missing/empty values should be omitted. Do not infer publication timestamps or authors.
 
-### HTML input, limits, and errors (implementation contract for Pass 2)
+### HTML input, limits, and errors
 
-- `WebArticleExtractor.extract(html: Data, sourceURL: URL)` will be a **synchronous extraction from supplied HTML**, not a downloader. Caller performs any network request.
+- `WebArticleExtractor.extract(html: Data, sourceURL: URL, options:)` is a **synchronous extraction from supplied HTML**, not a downloader. Caller performs any network request.
 - Accept actual HTTP/HTTPS document URLs as sources and reject unsupported schemes. No `URLSession`, cookies, authentication, JavaScript engine or paywall bypass.
-- Use a bounded input-size default (proposed 5 MiB) and enforce before decoding, with cancellation checks while processing. Avoid retaining duplicate copies of large HTML in the result.
-- Prefer correct UTF-8, recognize a relevant BOM/declared charset where feasible, and use a documented conservative Windows-1252 fallback; invalid/binary material must fail safely.
-- Return a typed extraction error for oversized input, unsupported URL, unsupported encoding, or lack of a credible main article. **Do not treat a navigation-only page as a successful article**.
-- Retaining source raw HTML is **not** part of `WebArticleResult` in Pass 1. If reconsidered, it requires an explicit memory/size contract.
+- Use the default 5 MiB input-size bound before decoding, with cancellation checks during extraction. Raw HTML is not retained in the result; temporary decode/DOM copies exist during parsing.
+- Decode UTF-8 (including BOM), BOM-marked UTF-16 and conservatively fall back to Windows-1252. **HTML-declared charsets other than those cases are not currently honored**; embedded NULs fail safely.
+- Return typed extraction errors for oversized input, excess DOM elements/blocks/depth, unsupported URLs or encodings, or no credible article. **Do not treat a navigation-only page as a successful article**.
+- Retaining source raw HTML is **not** part of `WebArticleResult`. If reconsidered, it requires an explicit memory/size contract.
 - On task cancellation, propagate cancellation; do not turn it into an unreadable-article result.
 
 ## Fixture corpus
@@ -68,11 +68,11 @@ Location: `Tests/TextExtractorWebTests/Fixtures/`.
 | `non-article-navigation.html` | Site navigation/links without a credible article; reject |
 | `non-article-empty.html` | JavaScript-only root and empty body article; reject |
 
-`fixture-cases.json` records **normative expected behavior**: article success/failure, title, and ordered `{ kind, text }` values. These golden expectations are **design targets**, not claims that a parser is implemented or already passing. Pass 2 must test them against actual extraction, document any deliberate semantic adjustments (e.g. whether the article title is an explicit heading or metadata only), and never silently weaken a regression expectation to hide data loss.
+`fixture-cases.json` records **normative expected behavior**: article success/failure, title, and ordered `{ kind, text }` values. The parser and regression tests are committed but **have not been executed**. A future change must not silently weaken golden expectations to mask semantic data loss.
 
 Large inputs, malformed encodings (including non-UTF-8 byte sequences), invalid heading values, duplicate IDs, cancellation and deeply nested DOM structures may be **generated in tests** rather than committed as megabyte fixtures.
 
-## Pass 2 implementation: offline semantic extraction
+## Offline semantic extraction
 
 `WebArticleExtractor.extract(html:sourceURL:options:)` is implemented in
 `Sources/TextExtractorWeb/WebArticleExtractor.swift`. It operates on supplied
@@ -80,7 +80,8 @@ HTML bytes; it does **not** fetch a URL.
 
 - Reader selection: **SwiftReadability 0.3.3**, pinned. The parser runs in the
   calling task, with `ReadabilityOptions.maxElemsToParse` set to the configured
-  element limit.
+  element limit. When that limit is exceeded, the module reports
+  `WebArticleExtractionError.tooManyDOMElements(maxElements:)` instead of hiding it as an unreadable article.
 - Structure: **SwiftSoup 2.13.6**, pinned. The selected article fragment is
   walked in DOM source order; block classification is retained during text
   normalization. Headings, paragraphs, list items, blockquotes, code,
@@ -135,12 +136,12 @@ semantic DOM reconstruction separately from Readability's article selection.
 The implementation and tests are committed on the PR. **Apple CI/test execution
 remains unverified until the now-manual workflows are dispatched.**
 
-## Pass 1 exit criteria
+## Implementation status
 
-- [x] Standalone product/target exists; no source under `Sources/TextExtractor/**` changes.
-- [x] Typed value models, renderer and validation are implemented in `Sources/TextExtractorWeb/**`.
-- [x] Model/serialization tests and a fixture inventory test exist.
-- [x] Representative positive/negative article fixtures and expected output specification exist.
-- [ ] Run CI/package builds on supported Apple platforms and correct any Pass 1 failures.
+- [x] Standalone product/target and web-specific APIs exist; no source under `Sources/TextExtractor/**` changed.
+- [x] Typed article parser, model tests, positive/negative golden fixtures, demo inspector, release workflow and documentation are committed on PR #6.
+- [x] All three GitHub Actions workflows are manual-only.
+- [ ] Build, fixture execution, demo UI validation, release assets and mycli deployment remain unverified at user request.
+- [ ] Confirm Swift 6.2 compatibility requirements against the supported toolchains before release.
 
-Passes 2–5 cover the real parser, demo inspector, mycli-compatible demo release, and final integration/regression checks **inside this package repository only**.
+See [`WEB_ARTICLE_RELEASE_CHECKLIST.md`](WEB_ARTICLE_RELEASE_CHECKLIST.md) for the independent package release gates.

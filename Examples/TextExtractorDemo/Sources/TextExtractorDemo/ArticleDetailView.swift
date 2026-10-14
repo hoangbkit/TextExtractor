@@ -70,7 +70,7 @@ struct ArticleDetailView: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             }
         }
     }

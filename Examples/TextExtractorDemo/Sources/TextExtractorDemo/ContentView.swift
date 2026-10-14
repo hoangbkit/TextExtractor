@@ -111,7 +111,7 @@ struct ContentView: View {
 #if os(macOS)
         .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 380)
 #endif
-        .navigationTitle("Samples")
+        .navigationTitle("Library")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {

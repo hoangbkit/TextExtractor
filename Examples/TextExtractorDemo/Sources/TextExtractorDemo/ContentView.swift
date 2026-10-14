@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = DemoViewModel()
+    @StateObject private var articleViewModel = DemoArticleViewModel()
     @State private var isImporterPresented = false
 
     var body: some View {
@@ -37,7 +38,13 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
-        List(selection: fixtureSelection) {
+        List(selection: sidebarSelection) {
+            Section("WEB ARTICLES") {
+                ForEach(articleViewModel.samples) { sample in
+                    articleLink(sample)
+                }
+            }
+
             if !viewModel.customFiles.isEmpty {
                 Section("CUSTOM") {
                     ForEach(viewModel.customFiles) { file in
@@ -79,7 +86,7 @@ struct ContentView: View {
     }
 
     private func sampleLink(_ file: FixtureFile) -> some View {
-        NavigationLink(value: file.id) {
+        NavigationLink(value: DemoSidebarSelection.file(file.id)) {
             Label {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(file.fileName)
@@ -94,10 +101,43 @@ struct ContentView: View {
         }
     }
 
-    private var fixtureSelection: Binding<FixtureFile.ID?> {
+    private func articleLink(_ sample: DemoArticleSample) -> some View {
+        NavigationLink(value: DemoSidebarSelection.article(sample.id)) {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(sample.title)
+                    Text(sample.fileName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: "text.book.closed")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var sidebarSelection: Binding<DemoSidebarSelection?> {
         Binding(
-            get: { viewModel.selectedFixtureID },
-            set: { viewModel.selectFixture($0) }
+            get: {
+                if let id = articleViewModel.selectedSampleID {
+                    return .article(id)
+                }
+                return viewModel.selectedFixtureID.map(DemoSidebarSelection.file)
+            },
+            set: { selection in
+                switch selection {
+                case .article(let id):
+                    viewModel.selectFixture(nil)
+                    articleViewModel.selectSample(id)
+                case .file(let id):
+                    articleViewModel.selectSample(nil)
+                    viewModel.selectFixture(id)
+                case nil:
+                    articleViewModel.selectSample(nil)
+                    viewModel.selectFixture(nil)
+                }
+            }
         )
     }
 
@@ -114,7 +154,27 @@ struct ContentView: View {
 
     @ViewBuilder
     private var detail: some View {
-        if viewModel.isExtracting {
+        if articleViewModel.selectedSampleID != nil {
+            if articleViewModel.isExtracting {
+                ProgressView("Extracting Article…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = articleViewModel.errorMessage {
+                ContentUnavailableView(
+                    "Article Extraction Failed",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text(error)
+                )
+            } else if let article = articleViewModel.result {
+                ArticleDetailView(article: article)
+                    .id(articleViewModel.selectedSampleID)
+            } else {
+                ContentUnavailableView(
+                    "No Article",
+                    systemImage: "doc.text",
+                    description: Text("Choose a bundled article sample.")
+                )
+            }
+        } else if viewModel.isExtracting {
             ProgressView("Extracting…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let errorMessage = viewModel.errorMessage {

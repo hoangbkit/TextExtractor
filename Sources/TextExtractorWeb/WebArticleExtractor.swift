@@ -32,6 +32,7 @@ public enum WebArticleExtractionError: Error, Equatable, Sendable {
     case unreadableEncoding
     case unreadableArticle
     case tooManyBlocks(maxBlocks: Int)
+    case tooManyDOMElements(maxElements: Int)
     case domTooDeep(maxDepth: Int)
 }
 
@@ -69,7 +70,21 @@ public struct WebArticleExtractor: Sendable {
             url: sourceURL,
             options: ReadabilityOptions(maxElemsToParse: options.maxDOMElements)
         )
-        let parsed = try? reader.parse()
+        let parsed: ReadabilityResult?
+        do {
+            parsed = try reader.parse()
+        } catch {
+            // Pinned SwiftReadability 0.3.3 reports its element ceiling
+            // through NSError(domain: "Readability", code: 1).
+            try Task.checkCancellation()
+            let failure = error as NSError
+            if failure.domain == "Readability" && failure.code == 1 {
+                throw WebArticleExtractionError.tooManyDOMElements(
+                    maxElements: options.maxDOMElements
+                )
+            }
+            throw WebArticleExtractionError.unreadableArticle
+        }
         try Task.checkCancellation()
         guard let article = parsed else {
             throw WebArticleExtractionError.unreadableArticle

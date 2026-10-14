@@ -54,7 +54,27 @@ final class WebArticleDOMTests: XCTestCase {
         XCTAssertThrowsError(try shallow.collect(root)) {
             XCTAssertEqual($0 as? WebArticleExtractionError, .domTooDeep(maxDepth: 1))
         }
+    }
 
+    func testLooseTextAndEqualParagraphOccurrencesStayInSourceOrder() throws {
+        let html = """
+        <article>
+          <div>Intro <em>important</em> content.</div>
+          <p>Repeated.</p>
+          <p>Repeated.</p>
+          <script>mustNeverAppear()</script>
+        </article>
+        """
+        let document = try SwiftSoup.parseBodyFragment(html)
+        var parser = WebArticleBlockCollector(options: .init())
+        try parser.collect(try XCTUnwrap(document.body()))
+
+        XCTAssertEqual(parser.blocks.map(\.kind), [
+            .preservedContent, .paragraph, .paragraph
+        ])
+        XCTAssertEqual(parser.blocks.map(\.text), [
+            "Intro important content.", "Repeated.", "Repeated."
+        ])
     }
 
     func testExplicitBlockLimitRefusesSecondBlock() throws {

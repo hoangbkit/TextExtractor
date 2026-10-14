@@ -39,6 +39,29 @@ final class WebArticleExtractorTests: XCTestCase {
         }
     }
 
+    func testTitleCleanerOnlyRemovesVerifiedSiteBranding() {
+        let cases: [(title: String, site: String?, expected: String)] = [
+            ("Keep a Field Journal | Trail Letter", "Trail Letter", "Keep a Field Journal"),
+            ("Keep a Field Journal - Trail Letter", "Trail Letter", "Keep a Field Journal"),
+            ("Keep a Field Journal — TRAIL LETTER", "Trail Letter", "Keep a Field Journal"),
+            ("Keep a Field Journal – Trail Letter", "Trail Letter", "Keep a Field Journal"),
+            ("A | B: A Comparison | Trail Letter", "Trail Letter", "A | B: A Comparison"),
+            ("Notes | Reflections", "Trail Letter", "Notes | Reflections"),
+            ("Field Notes - Part One", "Trail Letter", "Field Notes - Part One"),
+            ("Keep a Field Journal | Trail Letter", nil, "Keep a Field Journal | Trail Letter"),
+            ("Trail Letter", "Trail Letter", "Trail Letter"),
+            (" | Trail Letter", "Trail Letter", "| Trail Letter")
+        ]
+
+        for sample in cases {
+            XCTAssertEqual(
+                WebArticleExtractor.titleWithoutSiteSuffix(sample.title, siteName: sample.site),
+                sample.expected,
+                sample.title
+            )
+        }
+    }
+
     func testNonArticleFixturesDoNotReturnSiteNavigation() throws {
         for fixture in try loadFixtures() where !fixture.shouldExtract {
             XCTAssertThrowsError(try WebArticleExtractor().extract(

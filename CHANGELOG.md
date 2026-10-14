@@ -12,6 +12,7 @@ The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 - Offline main-article extraction from caller-supplied HTML and source URL using SwiftReadability and SwiftSoup, including semantic ordered blocks, deterministic occurrence-based block IDs, and derived plain-text output.
 - Web-article metadata (`author`, `siteName`, `language`, `publishedTime` when available), typed extraction/model errors, cancellation checks, and configurable input/DOM/block limits.
 - Separate web-article inspector in both TextExtractorDemo apps with bundled offline examples, typed block details, derived plain text, metadata, and error display.
+- Demo Library **+** menu with Browse Files and Add Article URL, including demo-only bounded HTTPS downloading, persisted typed JSON article results for offline reopening, and removal of saved articles.
 - Manual-only Demo Release workflow for unsigned universal macOS archives, unsigned iOS device archives, and a generated Xcode project ZIP consumable by mycli.
 - Dedicated web-article fixtures, golden-output tests, DOM-structure tests, and standalone API documentation.
 

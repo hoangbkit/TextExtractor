@@ -116,8 +116,11 @@ final class DemoViewModel: ObservableObject {
 
         guard let id else {
             extractionTask?.cancel()
+            extractionTask = nil
             selectedSourceName = nil
             document = nil
+            errorMessage = nil
+            isExtracting = false
             return
         }
 

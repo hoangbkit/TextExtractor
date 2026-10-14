@@ -34,6 +34,7 @@ let package = Package(
             name: "TextExtractorWebTests",
             dependencies: [
                 "TextExtractorWeb",
+                "TextExtractor",
                 .product(name: "SwiftSoup", package: "SwiftSoup")
             ],
             resources: [.process("Fixtures")]

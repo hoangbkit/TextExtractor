@@ -97,6 +97,42 @@ final class WebArticleExtractorTests: XCTestCase {
         }
     }
 
+
+    func testReadabilityElementCeilingIsReportedAsTypedLimitError() throws {
+        let html = try loadHTML(named: "article-basic")
+        XCTAssertThrowsError(try WebArticleExtractor().extract(
+            html: html,
+            sourceURL: articleURL,
+            options: .init(maxDOMElements: 1)
+        )) { error in
+            XCTAssertEqual(
+                error as? WebArticleExtractionError,
+                .tooManyDOMElements(maxElements: 1)
+            )
+        }
+    }
+
+    func testRepeatedSourceParagraphsKeepDistinctBlockIDs() throws {
+        let paragraph = "Repeated paragraph content remains meaningful even when the prose is identical across multiple portions of an article."
+        let html = """
+        <html><head><title>Repeated Content</title></head><body>
+        <article><h1>Repeated Content</h1>
+        <p>\(paragraph)</p><p>\(paragraph)</p>
+        <p>An additional paragraph ensures the article has enough textual context for main-content selection.</p>
+        </article></body></html>
+        """
+        let result = try WebArticleExtractor().extract(
+            html: Data(html.utf8),
+            sourceURL: articleURL
+        )
+        let matching = result.blocks.filter {
+            $0.kind == .paragraph && $0.text == paragraph
+        }
+        XCTAssertEqual(matching.count, 2)
+        XCTAssertNotEqual(matching.first?.id, matching.last?.id)
+        XCTAssertEqual(result.text, result.blocks.map(\.text).joined(separator: "\\n\\n"))
+    }
+
     func testCancellationPropagates() async throws {
         let html = try loadHTML(named: "article-basic")
         let url = articleURL

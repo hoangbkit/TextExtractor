@@ -12,7 +12,9 @@ let package = Package(
         .library(name: "TextExtractorWeb", targets: ["TextExtractorWeb"])
     ],
     dependencies: [
-        .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.19")
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.19"),
+        .package(url: "https://github.com/wolfyy970/swift-readability.git", exact: "0.3.3"),
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", exact: "2.13.6")
     ],
     targets: [
         .target(
@@ -23,7 +25,10 @@ let package = Package(
         ),
         .target(
             name: "TextExtractorWeb",
-            dependencies: []
+            dependencies: [
+                .product(name: "SwiftReadability", package: "swift-readability"),
+                .product(name: "SwiftSoup", package: "SwiftSoup")
+            ]
         ),
         .testTarget(
             name: "TextExtractorWebTests",

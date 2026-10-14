@@ -163,7 +163,7 @@ struct WebArticleBlockDraft {
 
 /// Keeps semantic source roles throughout post-processing. No PDF-style layout
 /// inference, paragraph completion guesses or global read/skip policy.
-private struct WebArticleBlockCollector {
+struct WebArticleBlockCollector {
     let options: WebArticleExtractionOptions
     private(set) var blocks: [WebArticleBlockDraft] = []
 
@@ -198,9 +198,7 @@ private struct WebArticleBlockCollector {
             // same item, but nested list items must remain independently typed.
             let own = try Self.nodeText(element, excludingNestedListItems: true, maxDepth: options.maxDOMDepth)
             try append(.listItem, own)
-            for child in element.children() where ["ol", "ul"].contains(child.tagName().lowercased()) {
-                try visit(child, depth: depth + 1)
-            }
+            try collectNestedLists(in: element, depth: depth + 1)
         case "blockquote":
             try append(.quote, element.text())
         case "pre":
@@ -231,6 +229,23 @@ private struct WebArticleBlockCollector {
                 }
             }
             try append(.preservedContent, looseText)
+        }
+    }
+
+    /// Find nested lists even when an HTML wrapper separates them from the
+    /// containing list item. Their item text is excluded from the parent.
+    private mutating func collectNestedLists(in element: Element, depth: Int) throws {
+        try Task.checkCancellation()
+        guard depth <= options.maxDOMDepth else {
+            throw WebArticleExtractionError.domTooDeep(maxDepth: options.maxDOMDepth)
+        }
+        for child in element.children() {
+            let tag = child.tagName().lowercased()
+            if tag == "ol" || tag == "ul" {
+                try visit(child, depth: depth)
+            } else if tag != "li" {
+                try collectNestedLists(in: child, depth: depth + 1)
+            }
         }
     }
 

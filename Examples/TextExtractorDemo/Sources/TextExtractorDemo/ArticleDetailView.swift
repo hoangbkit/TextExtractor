@@ -15,18 +15,11 @@ struct ArticleDetailView: View {
     let article: WebArticleResult
 
     @State private var mode: ArticleDetailMode = .blocks
+    @State private var showsOptions = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Picker("Article View", selection: $mode) {
-                    ForEach(ArticleDetailMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .accessibilityLabel("Article output view")
-
                 switch mode {
                 case .blocks:
                     typedBlocks
@@ -43,6 +36,51 @@ struct ArticleDetailView: View {
         }
         .navigationTitle(article.title)
         .navigationSubtitle("WEB ARTICLE")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showsOptions = true
+                } label: {
+                    Label("Article Options", systemImage: "slider.horizontal.3")
+                }
+                .accessibilityLabel("Article Options")
+            }
+        }
+        .sheet(isPresented: $showsOptions) {
+            optionsSheet
+        }
+    }
+
+    private var optionsSheet: some View {
+        NavigationStack {
+            Form {
+                Section("Content View") {
+                    Picker("Show", selection: $mode) {
+                        ForEach(ArticleDetailMode.allCases) { choice in
+                            Text(choice.rawValue).tag(choice)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                }
+                Section {
+                    Text("Choose how to inspect the extracted article. Semantic blocks and their source order are never changed by this setting.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Article Options")
+#if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+#endif
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { showsOptions = false }
+                }
+            }
+        }
+#if os(macOS)
+        .frame(minWidth: 380, idealWidth: 440, minHeight: 310)
+#endif
     }
 
     private var typedBlocks: some View {

@@ -9,17 +9,20 @@ public struct WebArticleExtractionOptions: Sendable, Equatable {
     public var minimumReadableCharacterCount: Int
     public var maxBlocks: Int
     public var maxDOMDepth: Int
+    public var maxDOMElements: Int
 
     public init(
         maxInputBytes: Int = 5 * 1024 * 1024,
         minimumReadableCharacterCount: Int = 40,
         maxBlocks: Int = 10_000,
-        maxDOMDepth: Int = 128
+        maxDOMDepth: Int = 128,
+        maxDOMElements: Int = 50_000
     ) {
         self.maxInputBytes = max(0, maxInputBytes)
         self.minimumReadableCharacterCount = max(1, minimumReadableCharacterCount)
         self.maxBlocks = max(1, maxBlocks)
         self.maxDOMDepth = max(1, maxDOMDepth)
+        self.maxDOMElements = max(1, maxDOMElements)
     }
 }
 
@@ -61,13 +64,21 @@ public struct WebArticleExtractor: Sendable {
 
         // Do not add a text-only fallback: that can narrate navigation or ads
         // on pages without an actual article.
-        let reader = Readability(html: html, url: sourceURL)
-        guard let article = try reader.parse() else {
+        let reader = Readability(
+            html: html,
+            url: sourceURL,
+            options: ReadabilityOptions(maxElemsToParse: options.maxDOMElements)
+        )
+        let parsed = try? reader.parse()
+        try Task.checkCancellation()
+        guard let article = parsed else {
             throw WebArticleExtractionError.unreadableArticle
         }
         try Task.checkCancellation()
 
-        let document = try SwiftSoup.parseBodyFragment(article.contentHTML)
+        guard let document = try? SwiftSoup.parseBodyFragment(article.contentHTML) else {
+            throw WebArticleExtractionError.unreadableArticle
+        }
         var collector = WebArticleBlockCollector(options: options)
         if let body = document.body() {
             try collector.collect(body)
@@ -185,7 +196,7 @@ private struct WebArticleBlockCollector {
         case "li":
             // Emit a list item only once. Its nested paragraphs belong to the
             // same item, but nested list items must remain independently typed.
-            let own = Self.nodeText(element, excludingNestedListItems: true)
+            let own = try Self.nodeText(element, excludingNestedListItems: true, maxDepth: options.maxDOMDepth)
             try append(.listItem, own)
             for child in element.children() where ["ol", "ul"].contains(child.tagName().lowercased()) {
                 try visit(child, depth: depth + 1)
@@ -193,7 +204,7 @@ private struct WebArticleBlockCollector {
         case "blockquote":
             try append(.quote, element.text())
         case "pre":
-            try append(.code, Self.nodeText(element, preserveLines: true))
+            try append(.code, Self.nodeText(element, preserveLines: true, maxDepth: options.maxDOMDepth))
         case "table":
             try append(.table, Self.tableText(element))
         case "figcaption":
@@ -212,7 +223,7 @@ private struct WebArticleBlockCollector {
                 }
                 let childTag = child.tagName().lowercased()
                 if Self.isInline(childTag) {
-                    looseText += Self.nodeText(child)
+                    looseText += try Self.nodeText(child, maxDepth: options.maxDOMDepth)
                 } else {
                     try append(.preservedContent, looseText)
                     looseText = ""
@@ -246,27 +257,54 @@ private struct WebArticleBlockCollector {
         blocks.append(WebArticleBlockDraft(kind: kind, text: text))
     }
 
-    /// Extract visible text in DOM order without incorporating nested list
-    /// items twice. Text nodes preserve intentional whitespace for pre/code.
+    /// Iterative traversal protects against stack overflow from deeply nested
+    /// untrusted markup, including a nested list inside one logical item.
     private static func nodeText(
         _ element: Element,
         excludingNestedListItems: Bool = false,
-        preserveLines: Bool = false
-    ) -> String {
+        preserveLines: Bool = false,
+        maxDepth: Int
+    ) throws -> String {
+        struct Frame {
+            let node: Node
+            let depth: Int
+            let isClosing: Bool
+        }
         var pieces: [String] = []
-        func walk(_ node: Node, depth: Int) {
-            if let text = node as? TextNode {
-                pieces.append(text.getWholeText())
-            } else if let child = node as? Element {
-                let tag = child.tagName().lowercased()
-                if excludingNestedListItems && depth > 0 && tag == "li" { return }
-                if tag == "br" { pieces.append("\n"); return }
-                if ["p", "div"].contains(tag) && !pieces.isEmpty { pieces.append(preserveLines ? "\n" : " ") }
-                for next in child.getChildNodes() { walk(next, depth: depth + 1) }
-                if ["p", "div"].contains(tag) { pieces.append(preserveLines ? "\n" : " ") }
+        var stack: [Frame] = [Frame(node: element, depth: 0, isClosing: false)]
+        while let frame = stack.popLast() {
+            try Task.checkCancellation()
+            guard frame.depth <= maxDepth else {
+                throw WebArticleExtractionError.domTooDeep(maxDepth: maxDepth)
+            }
+            if let node = frame.node as? TextNode {
+                pieces.append(node.getWholeText())
+                continue
+            }
+            guard let child = frame.node as? Element else { continue }
+            let tag = child.tagName().lowercased()
+            if excludingNestedListItems && frame.depth > 0 && tag == "li" {
+                continue
+            }
+            if tag == "br" {
+                pieces.append("\n")
+                continue
+            }
+            let isBlock = tag == "p" || tag == "div"
+            if frame.isClosing {
+                if isBlock { pieces.append(preserveLines ? "\n" : " ") }
+                continue
+            }
+            if isBlock && !pieces.isEmpty {
+                pieces.append(preserveLines ? "\n" : " ")
+            }
+            if isBlock {
+                stack.append(Frame(node: child, depth: frame.depth, isClosing: true))
+            }
+            for nested in child.getChildNodes().reversed() {
+                stack.append(Frame(node: nested, depth: frame.depth + 1, isClosing: false))
             }
         }
-        walk(element, depth: 0)
         return pieces.joined()
     }
 

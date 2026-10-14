@@ -22,12 +22,17 @@ Choose either demo scheme in Xcode.
 ## What it demos
 
 - Bundles the repository `Fixtures` directory into both apps.
+- Bundles three standalone offline HTML examples from `ArticleSamples/` for the optional `TextExtractorWeb` product.
+- Adds a separate **Web Articles** section in the sidebar; selecting one opens a typed article inspector rather than the generic HTML-to-text view.
+- The article inspector can switch between **Blocks** (kind, stable occurrence ID, text), **Plain Text** (derived from typed blocks), and **Metadata** (title, source URL, known article fields).
+- Includes a navigation-only sample that intentionally demonstrates how an unreadable/non-article failure is displayed.
+- The web article feature has **no network fetch**; the example URLs are provenance inputs, not requests.
 - Lists every bundled file whose extension is supported by `TextExtractor`.
 - Extracts the selected sample away from the main actor and shows the extracted text in the detail view.
 - Provides an **Open File** button using the system file importer for external files.
 - Supports the package's plain text, Markdown, SRT, WebVTT, RTF, HTML, DOCX, ODT, and PPTX extensions on macOS and iOS, plus legacy DOC on macOS.
 
-The fixture folder is copied into the app bundle by XcodeGen as a folder resource, so the built demo does not depend on the source checkout path at runtime.
+The `Fixtures` and `ArticleSamples` folders are copied into the app bundle as separate folder resources by XcodeGen, so neither demo flow requires a source checkout at runtime. The existing document imports continue to use core `TextExtractor` without changing its output models.\n\nThe demo project keeps a single XcodeGen spec with two schemes, and `TextExtractorWeb` is linked independently into both apps. Generated `.xcodeproj` files remain ignored in git; the planned release workflow will publish a generated project ZIP for mycli.
 
 ## Command line
 

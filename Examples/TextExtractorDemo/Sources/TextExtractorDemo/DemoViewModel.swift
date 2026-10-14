@@ -158,6 +158,7 @@ final class DemoViewModel: ObservableObject {
             try FileManager.default.copyItem(at: url, to: destination)
             importErrorMessage = nil
             reloadCustomFiles()
+            selectFixture("Custom/\(destination.lastPathComponent)")
         } catch {
             importErrorMessage = Self.describe(error)
         }

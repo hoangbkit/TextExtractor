@@ -2,6 +2,28 @@
 
 Use this checklist for every tagged TextExtractor release and every standalone-to-Spokio synchronization.
 
+For the **optional standalone TextExtractorWeb product** delivered by issue #5,
+also use [WEB_ARTICLE_RELEASE_CHECKLIST.md](WEB_ARTICLE_RELEASE_CHECKLIST.md).
+It covers the web-only API and tests, manual-only CI, unsigned demo archives,
+the generated Xcode project release asset, and mycli deployment validation.
+The web module does not require host-app integration as part of its release.
+
+## Manual-only CI and package release distinctions
+
+**Fast CI**, **Full CI**, and **Demo Release** now run **only when explicitly
+dispatched** (`workflow_dispatch`). Lack of a recent GitHub Action result is
+not evidence of a passing build. Select the intended branch/commit in Actions
+and retain run IDs and successful logs as release evidence.
+
+`mycli-build-<run-id>-<attempt>` prereleases are demo artifacts, **not**
+semantic-versioned SwiftPM releases. The generated `.xcodeproj` is published
+as a ZIP next to unsigned platform archives and must never be committed.
+
+`TextExtractorWeb` introduces SwiftReadability 0.3.3, whose package manifest
+requires **Swift 6.2**. Confirm whether target-scoped linkage still allows
+package-wide SwiftPM resolution and whether older supported toolchains remain
+compatible before publishing a new normal package version.
+
 ## 1. Standalone package gate
 
 - [ ] PR scope matches the intended release.

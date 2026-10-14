@@ -1,0 +1,254 @@
+name: Demo Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Demo platform to build
+        required: true
+        default: both
+        type: choice
+        options:
+          - macOS
+          - iOS
+          - both
+      configuration:
+        description: One configuration per release (mycli expects one asset per platform)
+        required: true
+        default: Release
+        type: choice
+        options:
+          - Debug
+          - Release
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mycli-demo-release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish demo for mycli
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      DEMO_DIR: Examples/TextExtractorDemo
+      DEMO_NAME: TextExtractorDemo
+      EXPECTED_BUNDLE_ID: com.hoangbkit.text.extractor.demo
+
+    steps:
+      - name: Checkout selected ref
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Select Xcode 26.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d /Applications/Xcode_26.3.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate both demo schemes
+        working-directory: Examples/TextExtractorDemo
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodegen generate --spec project.yml
+          test -f TextExtractorDemo.xcodeproj/project.pbxproj
+          test -f TextExtractorDemo.xcodeproj/xcshareddata/xcschemes/TextExtractorDemo-macOS.xcscheme
+          test -f TextExtractorDemo.xcodeproj/xcshareddata/xcschemes/TextExtractorDemo-iOS.xcscheme
+
+      - name: Record release identity
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="mycli-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Platform: ${{ inputs.platform }}"
+          echo "Configuration: ${{ inputs.configuration }}"
+          echo "Tag: $tag"
+          mkdir -p artifacts
+
+      - name: Package generated Xcode project for mycli
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          project="$DEMO_DIR/$DEMO_NAME.xcodeproj"
+          asset="artifacts/${DEMO_NAME}-xcodeproj-${RELEASE_TAG}.zip"
+          test -f "$project/project.pbxproj"
+          ditto -c -k --sequesterRsrc --keepParent "$project" "$asset"
+          unzip -tq "$asset"
+          unzip -Z -1 "$asset" | grep -Fx "${DEMO_NAME}.xcodeproj/project.pbxproj"
+          unzip -Z -1 "$asset" | grep -Fx "${DEMO_NAME}.xcodeproj/xcshareddata/xcschemes/TextExtractorDemo-macOS.xcscheme"
+          unzip -Z -1 "$asset" | grep -Fx "${DEMO_NAME}.xcodeproj/xcshareddata/xcschemes/TextExtractorDemo-iOS.xcscheme"
+
+      - name: Archive unsigned iOS device demo
+        if: ${{ inputs.platform == 'iOS' || inputs.platform == 'both' }}
+        shell: bash
+        env:
+          BUILD_CONFIGURATION: ${{ inputs.configuration }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/${DEMO_NAME}-iOS.xcarchive"
+          derived="$RUNNER_TEMP/${DEMO_NAME}-iOS-DerivedData"
+          packages="$RUNNER_TEMP/${DEMO_NAME}-SourcePackages"
+
+          xcodebuild \
+            -project "$DEMO_DIR/$DEMO_NAME.xcodeproj" \
+            -scheme "${DEMO_NAME}-iOS" \
+            -configuration "$BUILD_CONFIGURATION" \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath "$derived" \
+            -clonedSourcePackagesDirPath "$packages" \
+            -archivePath "$archive" \
+            SKIP_INSTALL=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive
+
+          test -d "$archive"
+          shopt -s nullglob
+          apps=("$archive"/Products/Applications/*.app)
+          if [[ "${#apps[@]}" -ne 1 ]]; then
+            echo "error: expected one iOS demo app, found ${#apps[@]}" >&2
+            exit 1
+          fi
+          app="${apps[0]}"
+          test "$(basename "$app")" = "${DEMO_NAME}.app"
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")"
+          test "$bundle_id" = "$EXPECTED_BUNDLE_ID"
+          test -f "$app/ArticleSamples/garden-article.html"
+
+          asset="artifacts/${DEMO_NAME}-iOS-unsigned-${RELEASE_TAG}.xcarchive.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$archive" "$asset"
+          unzip -tq "$asset"
+          unzip -Z -1 "$asset" | grep -Fx "${DEMO_NAME}-iOS.xcarchive/Info.plist"
+          rm -rf "$derived" "$archive"
+
+      - name: Archive unsigned universal macOS demo
+        if: ${{ inputs.platform == 'macOS' || inputs.platform == 'both' }}
+        shell: bash
+        env:
+          BUILD_CONFIGURATION: ${{ inputs.configuration }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/${DEMO_NAME}-macOS.xcarchive"
+          derived="$RUNNER_TEMP/${DEMO_NAME}-macOS-DerivedData"
+          packages="$RUNNER_TEMP/${DEMO_NAME}-SourcePackages"
+
+          xcodebuild \
+            -project "$DEMO_DIR/$DEMO_NAME.xcodeproj" \
+            -scheme "${DEMO_NAME}-macOS" \
+            -configuration "$BUILD_CONFIGURATION" \
+            -sdk macosx \
+            -destination "generic/platform=macOS" \
+            -derivedDataPath "$derived" \
+            -clonedSourcePackagesDirPath "$packages" \
+            -archivePath "$archive" \
+            ARCHS="arm64 x86_64" \
+            ONLY_ACTIVE_ARCH=NO \
+            SKIP_INSTALL=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive
+
+          test -d "$archive"
+          shopt -s nullglob
+          apps=("$archive"/Products/Applications/*.app)
+          if [[ "${#apps[@]}" -ne 1 ]]; then
+            echo "error: expected one macOS demo app, found ${#apps[@]}" >&2
+            exit 1
+          fi
+          app="${apps[0]}"
+          test "$(basename "$app")" = "${DEMO_NAME}.app"
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")"
+          test "$bundle_id" = "$EXPECTED_BUNDLE_ID"
+          executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+          archs="$(lipo -archs "$app/Contents/MacOS/$executable")"
+          echo "macOS demo architectures: $archs"
+          [[ " $archs " == *" arm64 "* ]] || { echo 'error: arm64 missing' >&2; exit 1; }
+          [[ " $archs " == *" x86_64 "* ]] || { echo 'error: x86_64 missing' >&2; exit 1; }
+          test -f "$app/Contents/Resources/ArticleSamples/garden-article.html"
+
+          asset="artifacts/${DEMO_NAME}-macOS-universal-unsigned-${RELEASE_TAG}.xcarchive.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$archive" "$asset"
+          unzip -tq "$asset"
+          unzip -Z -1 "$asset" | grep -Fx "${DEMO_NAME}-macOS.xcarchive/Info.plist"
+          rm -rf "$derived" "$archive"
+
+      - name: Verify release assets before publishing
+        shell: bash
+        env:
+          BUILD_PLATFORM: ${{ inputs.platform }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          project="artifacts/${DEMO_NAME}-xcodeproj-${RELEASE_TAG}.zip"
+          ios="artifacts/${DEMO_NAME}-iOS-unsigned-${RELEASE_TAG}.xcarchive.zip"
+          mac="artifacts/${DEMO_NAME}-macOS-universal-unsigned-${RELEASE_TAG}.xcarchive.zip"
+
+          test -f "$project"
+          if [[ "$BUILD_PLATFORM" == "iOS" || "$BUILD_PLATFORM" == "both" ]]; then
+            test -f "$ios"
+          else
+            test ! -e "$ios"
+          fi
+          if [[ "$BUILD_PLATFORM" == "macOS" || "$BUILD_PLATFORM" == "both" ]]; then
+            test -f "$mac"
+          else
+            test ! -e "$mac"
+          fi
+
+          shopt -s nullglob
+          assets=(artifacts/*.zip)
+          expected=2
+          if [[ "$BUILD_PLATFORM" == "both" ]]; then expected=3; fi
+          if [[ "${#assets[@]}" -ne "$expected" ]]; then
+            echo "error: expected $expected release assets, got ${#assets[@]}" >&2
+            exit 1
+          fi
+          for asset in "${assets[@]}"; do
+            unzip -tq "$asset"
+            bytes="$(stat -f%z "$asset")"
+            if (( bytes <= 0 || bytes >= 2147483648 )); then
+              echo "error: asset is empty or >= 2GiB: $asset" >&2
+              exit 1
+            fi
+          done
+          ls -lh artifacts
+
+      - name: Publish GitHub prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" artifacts/*.zip \
+            --target "$RELEASE_SHA" \
+            --title "$RELEASE_TAG" \
+            --prerelease \
+            --generate-notes

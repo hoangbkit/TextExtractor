@@ -18,9 +18,14 @@ targetTemplates:
       - path: ../../Fixtures
         type: folder
         buildPhase: resources
+      - path: ArticleSamples
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: TextExtractor
         product: TextExtractor
+      - package: TextExtractor
+        product: TextExtractorWeb
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.hoangbkit.text.extractor.demo

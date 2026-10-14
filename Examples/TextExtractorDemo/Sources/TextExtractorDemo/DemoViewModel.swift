@@ -116,8 +116,11 @@ final class DemoViewModel: ObservableObject {
 
         guard let id else {
             extractionTask?.cancel()
+            extractionTask = nil
             selectedSourceName = nil
             document = nil
+            errorMessage = nil
+            isExtracting = false
             return
         }
 
@@ -155,6 +158,7 @@ final class DemoViewModel: ObservableObject {
             try FileManager.default.copyItem(at: url, to: destination)
             importErrorMessage = nil
             reloadCustomFiles()
+            selectFixture("Custom/\(destination.lastPathComponent)")
         } catch {
             importErrorMessage = Self.describe(error)
         }

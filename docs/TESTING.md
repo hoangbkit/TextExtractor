@@ -6,13 +6,13 @@ TextExtractor treats parser behavior as a compatibility surface. Every parser fi
 
 The package minimums are macOS 15+ and iOS 26+.
 
-GitHub Actions verifies the package and macOS demo on all of these runners:
+When **Full CI is manually dispatched**, its matrix runs the package and macOS demo on these runners:
 
 - Intel macOS 15: `macos-15-intel`
 - Apple Silicon macOS 15: `macos-15`
 - Apple Silicon macOS 26: `macos-26`
 
-The iOS demo is generated and built for a generic iOS Simulator destination on `macos-26`.
+The iOS demo is generated and built for a generic iOS Simulator destination on `macos-26`. **Fast CI**, **Full CI** and **Demo Release** are all `workflow_dispatch`-only. There are no automatic push/PR CI events. The new web-feature tests and demos have not yet been run on these environments.
 
 ## Local verification
 
@@ -47,6 +47,56 @@ make ios-build
 ```
 
 Generated `.xcodeproj` directories are intentionally ignored and must not be committed.
+
+### Web-article development commands
+
+For the optional article product and test target, the relevant commands are:
+
+```bash
+swift test --filter WebArticle
+swift build --product TextExtractorWeb
+```
+
+`WebArticleModelTests` covers the standalone immutable model and serialization
+contract. `WebArticleDOMTests` exercises semantic traversal and structural
+de-duplication independently of Readability's article selection.
+`WebArticleExtractorTests` exercises HTML-to-typed-result extraction, golden
+fixture parity, deterministic IDs, metadata, rejection cases, cancellation and
+limits. Golden data lives under `Tests/TextExtractorWebTests/Fixtures` and is
+intended to lock down output semantics, not merely check nonempty text.
+
+**Toolchain:** SwiftReadability 0.3.3 requires Swift 6.2. Older CI toolchains
+that previously built only the core product may now fail package resolution.
+This must be evaluated before declaring the version releasable; a target-scoped
+link does not guarantee a dependency's package manifest can be ignored.
+
+### Manual Actions and demo-release verification
+
+Run **Fast CI** for package tests, then **Full CI** for the macOS/iOS demo
+build matrix. For the separately provisioned **Demo Release** workflow, select
+platform `both` and configuration `Release` (or one platform if deliberately
+testing only one). A successful dispatch should publish:
+
+```text
+TextExtractorDemo-iOS-unsigned-mycli-build-<run-id>-<attempt>.xcarchive.zip
+TextExtractorDemo-macOS-universal-unsigned-mycli-build-<run-id>-<attempt>.xcarchive.zip
+TextExtractorDemo-xcodeproj-mycli-build-<run-id>-<attempt>.zip
+```
+
+The iOS archive must be a device `iphoneos` archive, not a Simulator build.
+The macOS archive must contain both `arm64` and `x86_64`. The Xcode project
+ZIP must contain exactly one top-level `TextExtractorDemo.xcodeproj/` project,
+including its `project.pbxproj`; no generated project is committed.
+Release metadata must point to the checkout SHA, and each selected platform
+must have exactly one matching deployable asset.
+
+The actual release deployment remains a **separate manual gate** on a signed
+local machine using `mycli deploy mac --release --tag <tag>` and
+`mycli deploy ios --release --tag <tag>`. See the
+[web-article release checklist](WEB_ARTICLE_RELEASE_CHECKLIST.md) for exact
+unverified requirements. Neither CI nor live release was executed as part
+of the PR's implementation passes.
+
 
 ## Test organization
 
@@ -126,6 +176,20 @@ The generic corpus test verifies that:
 - obvious source/container markup does not leak into output
 
 Format-specific tests should go deeper and assert exact semantics where the output is deterministic.
+
+## TextExtractorWeb fixture invariants
+
+When web-article parsing changes, compare its typed `blocks` before comparing
+rendered `text`. Assert ordered kind, content, distinct occurrence IDs, and
+exact `blocks.map(\\.text).joined(separator: "\\n\\n") == result.text`
+for each positive fixture. Do not convert unstructured plain text into fake
+typed paragraphs merely to satisfy a fixture. Distinguish absent/empty metadata
+from guessed values, and assert non-article/boilerplate pages reject safely.
+
+For core regression protection, run the existing `TextExtractorTests` corpus
+unchanged and compare the original generic HTML path against its pre-feature
+expectations. The web feature must not modify `Sources/TextExtractor/**` or
+`ExtractedTextDocument` or alter default extraction dispatch.
 
 ## Parser change checklist
 

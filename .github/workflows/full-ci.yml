@@ -1,9 +1,6 @@
 name: Full CI
 
 on:
-  push:
-    branches:
-      - master
   workflow_dispatch:
 
 permissions:

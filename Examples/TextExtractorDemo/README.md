@@ -24,11 +24,11 @@ Choose either demo scheme in Xcode.
 - Bundles the repository `Fixtures` directory into both apps.
 - Bundles three standalone offline HTML examples from `ArticleSamples/` for the optional `TextExtractorWeb` product.
 - Adds a separate **Web Articles** section in the sidebar; selecting one opens a typed article inspector rather than the generic HTML-to-text view.
-- The article inspector can switch between **Blocks** (kind, stable occurrence ID, text), **Plain Text** (derived from typed blocks), and **Metadata** (title, source URL, known article fields).
+- The article inspector can switch between **Blocks** (kind, stable occurrence ID, text), **Plain Text** (derived from typed blocks), and **Metadata** (title, source URL, known article fields) using the toolbar **Article Options** button and a dedicated Form sheet with **Done**. The scrollable content area contains **no sticky options header**.
 - Includes a navigation-only sample that intentionally demonstrates how an unreadable/non-article failure is displayed.
 - The web article feature has **no network fetch**; the example URLs are provenance inputs, not requests.
 - Lists every bundled file whose extension is supported by `TextExtractor`.
-- Extracts the selected sample away from the main actor and shows the extracted text in the detail view.
+- Extracts the selected sample away from the main actor and shows the extracted text in the detail view. Parsed/Raw display choice is in a **Document Options** toolbar sheet, not a segmented control occupying the toolbar/content area.
 - Provides an **Open File** button using the system file importer for external files.
 - Supports the package's plain text, Markdown, SRT, WebVTT, RTF, HTML, DOCX, ODT, and PPTX extensions on macOS and iOS, plus legacy DOC on macOS.
 

@@ -29,7 +29,9 @@ The package manifest intentionally uses string deployment versions so Swift tool
 | OpenDocument Text | `.odt` | Reading-order ODF text with headings, lists, tables, tabs, and line breaks |
 | PowerPoint | `.pptx` | Slides in presentation order with readable text, tables, and optional speaker notes |
 
-**Web articles** are available through the separate, opt-in `TextExtractorWeb` product, which selects the primary readable article from supplied HTML and preserves ordered typed semantic blocks. This does not change generic `.html` / `.htm` extraction in core.\n\nPDF and EPUB are intentionally outside this package because they require different extraction and layout strategies.
+**Web articles** are available through the separate, opt-in `TextExtractorWeb` product, which selects the primary readable article from supplied HTML and preserves ordered typed semantic blocks. This does not change generic `.html` / `.htm` extraction in core.
+
+PDF and EPUB are intentionally outside this package because they require different extraction and layout strategies.
 
 ## Installation
 

@@ -32,7 +32,10 @@ let package = Package(
         ),
         .testTarget(
             name: "TextExtractorWebTests",
-            dependencies: ["TextExtractorWeb"],
+            dependencies: [
+                "TextExtractorWeb",
+                .product(name: "SwiftSoup", package: "SwiftSoup")
+            ],
             resources: [.process("Fixtures")]
         ),
         .testTarget(

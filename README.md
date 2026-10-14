@@ -10,7 +10,7 @@ TextExtractor is designed for macOS and iOS applications that need predictable p
 
 - macOS 15+
 - iOS 26+
-- Swift tools 5.9+
+- Swift tools 5.9+ for the existing core package manifest and core sources; **the optional `TextExtractorWeb` product currently depends on SwiftReadability 0.3.3, which requires Swift 6.2**. Since SwiftPM resolves dependency manifests package-wide, older toolchain compatibility must be checked before release.
 
 The package manifest intentionally uses string deployment versions so Swift tools 5.9 can express the iOS 26 minimum while the package remains consumable by the macOS 15 CI toolchain.
 
@@ -29,7 +29,7 @@ The package manifest intentionally uses string deployment versions so Swift tool
 | OpenDocument Text | `.odt` | Reading-order ODF text with headings, lists, tables, tabs, and line breaks |
 | PowerPoint | `.pptx` | Slides in presentation order with readable text, tables, and optional speaker notes |
 
-PDF and EPUB are intentionally outside this package because they require different extraction and layout strategies.
+**Web articles** are available through the separate, opt-in `TextExtractorWeb` product, which selects the primary readable article from supplied HTML and preserves ordered typed semantic blocks. This does not change generic `.html` / `.htm` extraction in core.\n\nPDF and EPUB are intentionally outside this package because they require different extraction and layout strategies.
 
 ## Installation
 
@@ -67,6 +67,60 @@ let document = try extractor.extract(
     fileName: "chapter.md"
 )
 ```
+
+## Optional TextExtractorWeb article extraction
+
+`TextExtractorWeb` adds a **standalone, optional module** for extracting the primary
+readable article from an already downloaded HTML snapshot. It uses
+[SwiftReadability](https://github.com/wolfyy970/swift-readability) and
+[SwiftSoup](https://github.com/scinfu/SwiftSoup). It does not make network
+requests, execute JavaScript, or alter core `TextExtractor` types.
+
+In your SwiftPM target, depend on the `TextExtractorWeb` **product** from this
+package (rather than adding a new URL). Example:
+
+```swift
+import Foundation
+import TextExtractorWeb
+
+let sourceURL = URL(string: "https://example.com/blog/field-notes")!
+let article = try WebArticleExtractor().extract(
+    html: htmlData,
+    sourceURL: sourceURL
+)
+
+print(article.title)
+print(article.metadata["author"] ?? "Unknown author")
+for block in article.blocks {
+    print(block.id, block.kind, block.text)
+}
+print(article.text)
+```
+
+`WebArticleResult.blocks` is the authoritative, ordered semantic representation:
+`paragraph`, `heading(level:)`, `listItem`, `quote`, `code`, `table`,
+`caption`, and `preservedContent`. `article.text` is **derived from those
+blocks** with blank lines between blocks, not an independently reconstructed
+string. Block IDs are deterministic for the same source and segmentation,
+but **not** a persistent identity across content or parser-version changes.
+Semantic blocks are not TTS synthesis chunks.
+
+The result includes the article title, source URL, and available metadata using
+documented stable keys. No global read/skip policy is applied. Extraction
+throws for invalid URLs, oversized inputs, unsupported encodings, unreadable
+articles, or limit violations. Supply the **final webpage URL** if redirects
+occurred before providing HTML; the extractor never follows redirects itself.
+
+Defaults limit input HTML to 5 MiB, parsed DOM elements to 50,000, DOM depth to
+128 and output to 10,000 blocks. These are **not** a browser-style time or
+memory sandbox: parse off the main actor and impose an external timeout/resource
+budget on untrusted inputs. JavaScript-only, paywalled, authenticated, and
+non-article pages are not guaranteed to produce readable output. Source HTML
+is not retained in the result.
+
+Full API/normalization details: [Web article contract](docs/WEB_ARTICLE_CONTRACT.md).
+The new module is unreleased and its build/regression validation has been
+deferred, so do not treat this API example as a verified production release.
 
 ## Concurrency
 
@@ -167,7 +221,7 @@ xcodegen generate
 open TextExtractorDemo.xcodeproj
 ```
 
-The demo bundles the checked-in `Fixtures` directory, lists every supported fixture file, extracts the selected sample off the main actor, shows parsed and raw text in a detail view, supports importing external files into a persistent Custom section, and provides removal on both platforms.
+The demo bundles the checked-in `Fixtures` directory, lists supported document fixtures, extracts the selected sample off the main actor, shows parsed and raw text in a detail view, supports importing external files into a persistent Custom section, and provides removal on both platforms. A separate **Web Articles** section offers offline HTML samples and an inspector with **Blocks**, **Plain Text**, and **Metadata** modes; selecting those samples uses `TextExtractorWeb`, not the original HTML extractor. See [the demo README](Examples/TextExtractorDemo/README.md).
 
 ## Development
 
@@ -202,13 +256,17 @@ Timing benchmarks are opt-in so normal CI does not depend on runner speed:
 TEXTEXTRACTOR_RUN_BENCHMARKS=1 swift test --filter Phase5BenchmarkTests
 ```
 
-CI is intentionally split by purpose:
+All three workflows are **manual-only** (`workflow_dispatch`):
 
-- **Fast CI** runs for pull requests targeting `master` and only executes the Swift package tests. It intentionally does not build the demo apps.
-- **Full CI** runs on pushes to `master` or by manual dispatch. It runs package tests and release builds, generates the XcodeGen demo project, builds the macOS demo on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26, and builds the iOS demo for a generic iOS Simulator on macOS 26.
+- **Fast CI** runs package tests on macOS 26.
+- **Full CI** runs package tests and a release build, generates the XcodeGen demo project, builds the macOS demo on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26, and builds the iOS demo for a generic iOS Simulator on macOS 26.
+- **Demo Release** creates unsigned iOS device and/or universal macOS demo archives plus a generated `.xcodeproj` ZIP in a `mycli-build-*` GitHub prerelease. It supports one Debug or Release configuration per run and never commits the generated project.
 
-See `docs/TESTING.md` for fixture and regression-test guidance.
+Choose the branch/ref in **GitHub Actions → selected workflow → Run workflow**.
+See `docs/TESTING.md` for regression-test guidance and
+`Examples/TextExtractorDemo/README.md` for release/deploy instructions.
+The new workflows have not been manually dispatched or verified on this PR.
 
 ## Releases
 
-TextExtractor follows semantic versioning. See `docs/VERSIONING.md`, `CHANGELOG.md`, and `docs/RELEASE_CHECKLIST.md` before tagging or synchronizing a revision into Spokio.
+TextExtractor follows semantic versioning. See `docs/VERSIONING.md`, `CHANGELOG.md`, and `docs/RELEASE_CHECKLIST.md` before tagging a release. For the standalone web feature, also consult `docs/WEB_ARTICLE_RELEASE_CHECKLIST.md`. Generated `mycli-build-*` demo prereleases are **not** Swift package version tags.

@@ -127,10 +127,10 @@ struct ContentView: View {
             },
             set: { selection in
                 switch selection {
-                case .article(let id):
+                case .some(.article(let id)):
                     viewModel.selectFixture(nil)
                     articleViewModel.selectSample(id)
-                case .file(let id):
+                case .some(.file(let id)):
                     articleViewModel.selectSample(nil)
                     viewModel.selectFixture(id)
                 case nil:

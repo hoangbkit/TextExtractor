@@ -130,7 +130,7 @@ final class WebArticleExtractorTests: XCTestCase {
         }
         XCTAssertEqual(matching.count, 2)
         XCTAssertNotEqual(matching.first?.id, matching.last?.id)
-        XCTAssertEqual(result.text, result.blocks.map(\.text).joined(separator: "\\n\\n"))
+        XCTAssertEqual(result.text, result.blocks.map(\.text).joined(separator: "\n\n"))
     }
 
     func testCancellationPropagates() async throws {

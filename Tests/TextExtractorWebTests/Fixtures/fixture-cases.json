@@ -1,0 +1,123 @@
+[
+  {
+    "name": "article-basic",
+    "shouldExtract": true,
+    "expectedTitle": "A Small Garden for Pollinators",
+    "expectedBlocks": [
+      {
+        "kind": "heading:1",
+        "text": "A Small Garden for Pollinators"
+      },
+      {
+        "kind": "paragraph",
+        "text": "Even a narrow balcony can become a place for pollinators when plants bloom at different times of the year. A sunny corner, a few containers, and a little patience are enough to begin."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Choose flowers with different shapes so bees and butterflies have options across the season. Keeping a shallow dish of clean water nearby makes the space more welcoming through warm afternoons."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Skip decorative pesticides and leave some stems standing until spring. Small changes repeated across many homes can form a network of resting places for visiting insects."
+      }
+    ]
+  },
+  {
+    "name": "article-structured",
+    "shouldExtract": true,
+    "expectedTitle": "Keep a Field Journal",
+    "expectedBlocks": [
+      {
+        "kind": "heading:1",
+        "text": "Keep a Field Journal"
+      },
+      {
+        "kind": "paragraph",
+        "text": "A field journal is a record of observations, not a test of drawing skill. A small notebook allows you to notice changes in light, plant growth, and weather patterns over weeks rather than minutes."
+      },
+      {
+        "kind": "heading:2",
+        "text": "Start with three observations"
+      },
+      {
+        "kind": "paragraph",
+        "text": "Begin each visit by writing the date and location. Then record what you can see, hear, and smell before reaching for a camera or a guidebook."
+      },
+      {
+        "kind": "listItem",
+        "text": "Notice the light and shadows."
+      },
+      {
+        "kind": "listItem",
+        "text": "Listen for a repeated bird call. Note where it comes from."
+      },
+      {
+        "kind": "listItem",
+        "text": "Compare one leaf with your earlier notes."
+      },
+      {
+        "kind": "quote",
+        "text": "Careful attention turns an ordinary path into a place you can recognize."
+      },
+      {
+        "kind": "caption",
+        "text": "A simple notebook beside the path."
+      },
+      {
+        "kind": "heading:2",
+        "text": "An optional data format"
+      },
+      {
+        "kind": "paragraph",
+        "text": "People who keep digital copies sometimes use plain text so notes remain searchable. A small structure is often enough to make entries easy to revisit."
+      },
+      {
+        "kind": "code",
+        "text": "date: 2026-04-20\nplace: north trail\nweather: cloudy"
+      },
+      {
+        "kind": "table",
+        "text": "Time\tObservation\nMorning\tCool breeze\nAfternoon\tWarm sunlight"
+      },
+      {
+        "kind": "paragraph",
+        "text": "Record only what you observed and revisit the same location later. Patterns become easier to spot when the journal stays simple."
+      }
+    ]
+  },
+  {
+    "name": "article-entities",
+    "shouldExtract": true,
+    "expectedTitle": "Café Signs & City Walks",
+    "expectedBlocks": [
+      {
+        "kind": "heading:1",
+        "text": "Café Signs & City Walks"
+      },
+      {
+        "kind": "paragraph",
+        "text": "On the walk toward the café, Renée noticed a faded sign that read “Bread & Coffee.” It was easy to miss from the main road, but the painted letters told a familiar neighborhood story."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Inside, the owner described how the shop had changed over twenty years — new neighbors, new recipes, and the same hand-written menu. Visitors still stopped to ask for directions before ordering a drink."
+      },
+      {
+        "kind": "paragraph",
+        "text": "The street was quiet by late afternoon. One small doorway, a bicycle, and a row of windows helped make an ordinary block feel memorable for anyone willing to look closely."
+      }
+    ]
+  },
+  {
+    "name": "non-article-navigation",
+    "shouldExtract": false,
+    "expectedTitle": "",
+    "expectedBlocks": []
+  },
+  {
+    "name": "non-article-empty",
+    "shouldExtract": false,
+    "expectedTitle": "",
+    "expectedBlocks": []
+  }
+]

@@ -6,6 +6,11 @@ options:
     macOS: "15.0"
     iOS: "26.0"
 
+# mycli reads project/target settings directly, without expanding targetTemplates.
+settings:
+  base:
+    DEVELOPMENT_TEAM: J458WW3452
+
 packages:
   TextExtractor:
     path: ../..
@@ -30,7 +35,6 @@ targetTemplates:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.hoangbkit.text.extractor.demo
         PRODUCT_NAME: TextExtractorDemo
-        DEVELOPMENT_TEAM: J458WW3452
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: TextExtractor Demo

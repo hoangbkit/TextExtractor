@@ -20,9 +20,9 @@ integration or migration.
 - [x] All three CI/release workflows use **manual `workflow_dispatch` only**.
 - [x] Demo Release workflow includes a generated Xcode project ZIP for mycli.
 
-## Tests and compatibility — NOT EXECUTED
+## Tests and compatibility — CI executed on preparation branch
 
-- [ ] Run `swift test --parallel` and `swift build -c release` at the PR head.
+- [x] `swift test --parallel` passed in Fast CI #38686086127 and Full CI #38690127546; `swift build -c release` passed in Full CI. These run on preparation commits, not yet a final v1.2.0 tag.
 - [ ] Run `swift test --filter WebArticle` and verify all positive and negative
       article fixtures against exact typed ordering, text and metadata.
 - [ ] Check repeated extraction determinism, distinct duplicate-text IDs,
@@ -30,36 +30,25 @@ integration or migration.
       preservation, code/table line breaks and exact rendering parity.
 - [ ] Check malformed HTML/encoding, oversize input, excessive depth/elements,
       block-count limits and cancellation behavior.
-- [ ] Verify `TextExtractorTests` (including generic `.html/.htm`) is
-      unchanged and every pre-existing test still passes. No changes to
-      the default extractor dispatch, error codes or segmentation.
-- [ ] **Resolve Swift toolchain compatibility:** SwiftReadability 0.3.3
-      uses Swift tools 6.2, while the existing `TextExtractor` package
-      specifies 5.9 and previously supported macOS 15 runners. Check
-      package-wide SwiftPM resolution on all supported runners, including
-      existing core-only consumers. Do not assume target-scoped dependencies
-      avoid manifest-resolution requirements.
+- [x] Existing `TextExtractorTests`, including generic HTML, passed in the full package suite. No changes to the default extractor dispatch, error codes or segmentation.
+- [x] **Compiler compatibility assessed:** SwiftReadability 0.3.3 requires Swift 6.2+ for package resolution even for core-only consumers. Swift 6.1.2 failed; Xcode 26.3/Swift 6.2+ passed on both macOS 15 runners. Runtime OS deployment minimums are unchanged. This build-toolchain requirement is documented for the planned v1.2.0 release.
 - [ ] Review `TextExtractorWeb` dependency licenses, transitives and
       binary/release distribution obligations.
 
-## Demo and manual CI — NOT EXECUTED
+## Demo and manual CI — automated gates passed
 
-- [ ] Dispatch **Fast CI** from the intended branch; check package tests.
-- [ ] Dispatch **Full CI** from the intended branch; check each macOS
-      Intel/Apple Silicon build and the iOS 26 simulator build.
-- [ ] Confirm `Examples/TextExtractorDemo/project.yml` generates a single
-      `TextExtractorDemo.xcodeproj`, with both shared schemes:
-      `TextExtractorDemo-macOS` and `TextExtractorDemo-iOS`.
+- [x] **Fast CI** passed on the feature branch: [run #38686086127](https://github.com/hoangbkit/TextExtractor/actions/runs/38686086127).
+- [x] **Full CI** passed macOS 15 Intel/Apple Silicon, macOS 26 Apple Silicon, and iOS 26 Simulator jobs: [run #38690127546](https://github.com/hoangbkit/TextExtractor/actions/runs/38690127546).
+- [x] XcodeGen generated `TextExtractorDemo.xcodeproj` with both shared schemes and the macOS/iOS demo builds passed CI.
 - [ ] On macOS and iOS, inspect a normal article (ordered typed blocks,
       text, metadata), structured article (headings, list items, quote,
       caption, table, code), and navigation-only expected error.
 - [ ] Confirm generic document fixture navigation, parsed/raw display,
       custom imports and delete operations are unaffected.
 
-## mycli Demo Release — NOT EXECUTED
+## mycli Demo Release — unsigned assets built, local deployment pending
 
-- [ ] Dispatch **Demo Release** manually on the intended commit,
-      `platform: both` and `configuration: Release`.
+- [x] **Demo Release** successfully ran on the preparation branch: [run #38681709018](https://github.com/hoangbkit/TextExtractor/actions/runs/38681709018).
 - [ ] Verify tag `mycli-build-<run-id>-<attempt>` is a GitHub prerelease
       and points to the workflow's checked-out commit SHA.
 - [ ] Verify exactly **three** ZIP assets for `both` (two for a
@@ -87,10 +76,10 @@ integration or migration.
 - [ ] Only after the checks above, decide whether the PR can be made
       ready for review and tagged.
 
-## Deferred validation note
+## Verification boundary
 
-The implementation passes were requested **without build, CI, simulator,
-real-device, signing or release execution**. Checked implementation items
-mean files were committed and the intended contract was written; they do
-**not** attest to passing builds or real deployment. Keep every unexecuted
-item unchecked until it has been performed.
+Automated package tests, macOS/iOS demo builds, and unsigned demo artifacts
+passed the linked workflow runs. The interactive demo checks, signed mycli
+deployment, physical-device launch, and exact final release-tag validation
+remain separate **unchecked** gates. Do not equate a successful unsigned
+archive with a successful signed device installation.

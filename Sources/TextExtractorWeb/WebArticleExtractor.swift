@@ -101,13 +101,22 @@ public struct WebArticleExtractor: Sendable {
         try Task.checkCancellation()
         var drafts = collector.blocks
 
-        let extractedTitle = Self.nonempty(article.title) ?? host
-        // Some Readability variants remove the original h1 from the cleaned
-        // body. Preserve a single title heading when none survives.
-        if !drafts.contains(where: {
+        // Prefer an h1 retained in Readability's article body. Otherwise use
+        // the page title, removing only a suffix verified by site metadata.
+        // Readability can drop the source h1 while leaving a site-branded
+        // <title> such as "Article | Publisher".
+        let retainedH1 = drafts.first(where: {
             if case .heading(level: 1) = $0.kind { return true }
             return false
-        }), Self.nonempty(article.title) != nil {
+        })?.text
+        let readableTitle = Self.nonempty(article.title)
+        let extractedTitle = retainedH1
+            ?? Self.titleWithoutSiteSuffix(readableTitle, siteName: article.siteName)
+            ?? host
+
+        // Restore one h1 if Readability removed it, using the same title that
+        // the caller receives in WebArticleResult.title.
+        if retainedH1 == nil, readableTitle != nil {
             drafts.insert(.init(kind: .heading(level: 1), text: extractedTitle), at: 0)
         }
 
@@ -144,6 +153,27 @@ public struct WebArticleExtractor: Sendable {
             blocks: blocks,
             metadata: metadata
         )
+    }
+
+    // A separator is not enough evidence to remove a subtitle: only strip
+    // publisher branding when the full suffix matches known site metadata.
+    // Internal for focused regression tests; not part of the package API.
+    static func titleWithoutSiteSuffix(_ title: String?, siteName: String?) -> String? {
+        guard let title = nonempty(title) else { return nil }
+        guard let siteName = nonempty(siteName) else { return title }
+
+        for separator in [" | ", " — ", " – ", " - "] {
+            let suffix = separator + siteName
+            if let match = title.range(
+                of: suffix,
+                options: [.caseInsensitive, .anchored, .backwards]
+            ) {
+                let candidate = String(title[..<match.lowerBound])
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !candidate.isEmpty { return candidate }
+            }
+        }
+        return title
     }
 
     private static func nonempty(_ value: String?) -> String? {

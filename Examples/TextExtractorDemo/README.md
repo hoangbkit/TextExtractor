@@ -37,7 +37,7 @@ Choose either demo scheme in Xcode.
 
 The `Fixtures` and `ArticleSamples` folders are copied into the app bundle as separate folder resources by XcodeGen, so neither demo flow requires a source checkout at runtime. The existing document imports continue to use core `TextExtractor` without changing its output models.
 
-The demo project keeps a single XcodeGen spec with two schemes, and `TextExtractorWeb` is linked independently into both apps. Generated `.xcodeproj` files remain ignored in git; the planned release workflow will publish a generated project ZIP for mycli.
+The demo project keeps a single XcodeGen spec with two schemes, and `TextExtractorWeb` is linked independently into both apps. Generated `.xcodeproj` files remain ignored in git; the manual Demo Release workflow publishes a generated project ZIP for mycli.
 
 ## Command line
 
@@ -53,10 +53,7 @@ Build the iOS demo for the Simulator:
 make ios-build
 ```
 
-CI workflows are manual-only. Full CI can regenerate and build the macOS
-target on Intel macOS 15, Apple Silicon macOS 15 and Apple Silicon macOS 26;
-the iOS target is built for an iOS 26 Simulator on macOS 26. These checks
-have not been run against the new article demo yet.
+CI workflows are manual-only. [Full CI #38690127546](https://github.com/hoangbkit/TextExtractor/actions/runs/38690127546) passed macOS demo builds on Intel macOS 15, Apple Silicon macOS 15, and Apple Silicon macOS 26 plus an iOS 26 Simulator build on macOS 26. Automated build success does not replace hands-on testing of article import and navigation.
 
 ## Demo Release for mycli
 
@@ -102,6 +99,4 @@ Publishing one configuration per release avoids ambiguous app assets in mycli.
 A macOS-only or iOS-only dispatch includes the project ZIP plus only the
 selected platform's archive.
 
-**Status:** This workflow has been implemented in PR #6 but has not been
-dispatched or build-tested; its first real build and deployment are separate
-from implementation.
+**Status:** [Demo Release #38681709018](https://github.com/hoangbkit/TextExtractor/actions/runs/38681709018) passed and published unsigned iOS/macOS demo archives plus the generated Xcode project ZIP. Signed mycli deployment and launching either app on a destination are **not yet verified**.

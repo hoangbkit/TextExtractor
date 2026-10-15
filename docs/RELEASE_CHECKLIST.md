@@ -20,9 +20,11 @@ semantic-versioned SwiftPM releases. The generated `.xcodeproj` is published
 as a ZIP next to unsigned platform archives and must never be committed.
 
 `TextExtractorWeb` introduces SwiftReadability 0.3.3, whose package manifest
-requires **Swift 6.2**. Confirm whether target-scoped linkage still allows
-package-wide SwiftPM resolution and whether older supported toolchains remain
-compatible before publishing a new normal package version.
+requires **Swift 6.2+** for package-wide dependency resolution (even for
+core-only `TextExtractor` consumers). This was confirmed by failure on Swift
+6.1.2 and success after selecting Xcode 26.3 on both macOS 15 runners.
+The package's runtime minimums (macOS 15.0+ and iOS 26.0+) are unchanged.
+Document this compiler compatibility change explicitly in v1.2.0 notes.
 
 ## 1. Standalone package gate
 
@@ -57,15 +59,17 @@ compatible before publishing a new normal package version.
 - [ ] Confirm the release commit SHA.
 - [ ] Create the version tag only after CI is green on that exact commit.
 
-## 4. Sync into Spokio
+## 4. Upgrade the Spokio dependency
 
-Spokio consumes a synchronized copy of TextExtractor, so treat package sync as a separate verification step rather than assuming standalone CI is sufficient.
+Spokio currently consumes TextExtractor as a remote Swift package pinned to
+`exactVersion: 1.1.0` in `project.yml`. A standalone TextExtractor CI pass is
+not a substitute for an integration build of Spokio against the new tag.
 
-- [ ] Choose the exact TextExtractor tag/revision to sync.
-- [ ] Run Spokio's package sync workflow/script from the intended Spokio target branch.
-- [ ] Verify the TextExtractor revision recorded in `Packages/REVISION_LOCK.json` matches the chosen standalone revision.
-- [ ] Confirm the synchronized TextExtractor source tree matches that revision with no silent local drift.
-- [ ] Review the Spokio diff before committing the sync.
+- [ ] Publish the intended TextExtractor semantic-version tag after its release gates pass.
+- [ ] Update Spokio's `project.yml` to `exactVersion: 1.2.0` and regenerate the Xcode project.
+- [ ] Confirm Spokio's committed `Package.resolved` records the new tag/revision.
+- [ ] Verify the Xcode Cloud workflow uses an Xcode/Swift toolchain compatible with SwiftReadability 0.3.3 (Swift 6.2+).
+- [ ] Review the dependency and project diff before merging into Spokio.
 
 ## 5. Spokio integration verification
 

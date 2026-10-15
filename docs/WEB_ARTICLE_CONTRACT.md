@@ -68,7 +68,7 @@ Location: `Tests/TextExtractorWebTests/Fixtures/`.
 | `non-article-navigation.html` | Site navigation/links without a credible article; reject |
 | `non-article-empty.html` | JavaScript-only root and empty body article; reject |
 
-`fixture-cases.json` records **normative expected behavior**: article success/failure, title, and ordered `{ kind, text }` values. The parser and regression tests are committed but **have not been executed**. A future change must not silently weaken golden expectations to mask semantic data loss.
+`fixture-cases.json` records **normative expected behavior**: article success/failure, title, and ordered `{ kind, text }` values. The parser and regression tests were executed successfully in Fast CI #38686086127 and Full CI #38690127546. A future change must not silently weaken golden expectations to mask semantic data loss.
 
 Large inputs, malformed encodings (including non-UTF-8 byte sequences), invalid heading values, duplicate IDs, cancellation and deeply nested DOM structures may be **generated in tests** rather than committed as megabyte fixtures.
 
@@ -94,8 +94,12 @@ HTML bytes; it does **not** fetch a URL.
   in code and tab/newline-separated table text survive.
 - IDs use `block-%06d` based on finalized source occurrence order. The
   renderer projects canonical blocks as plain text with `\n\n` separators.
-  The title is prepended as a single level-1 heading **only if no level-1
-  heading survives** and the extractor supplies a title.
+  The first retained level-1 heading takes precedence as the result title.
+  If none survives, Readability's title is used, removing a publisher suffix
+  **only when it matches `siteName` metadata** (supported separators are
+  ` | `, ` - `, ` – `, and ` — `). A synthetic H1 is prepended only
+  when there is no retained H1 and Readability supplies a nonempty title.
+  The cleaner does not normalize retained H1 text or infer a missing site name.
 - A webpage without at least `minimumReadableCharacterCount` non-heading
   characters is rejected; there is **no fallback** to dumping site navigation.
 
@@ -120,11 +124,12 @@ is a conservative fallback. Embedded NULs are rejected. The original HTML is
 not retained in the returned result. Metadata is sourced from Readability;
 missing values are not invented.
 
-**Toolchain caveat:** SwiftReadability 0.3.3 requires **Swift 6.2**. Even when
-its product is linked only by the optional web target, SwiftPM may still need
-to resolve its manifest for ordinary core consumers. Verify existing macOS 15
-CI/toolchain compatibility explicitly before releasing; do not change core
-source or deployment minimums to hide this compatibility issue.
+**Build toolchain requirement for v1.2.0:** SwiftReadability 0.3.3 requires
+**Swift 6.2+**, and SwiftPM must resolve its package manifest even for consumers
+linking only core `TextExtractor`. Swift 6.1.2 on macOS 15 failed dependency
+resolution; Full CI passed on macOS 15 Intel/Apple Silicon after selecting
+Xcode 26.3. This does not raise runtime deployment minimums (macOS 15.0+ and
+iOS 26.0+) but it does raise the minimum compiler for consumers.
 
 ### Parser acceptance tests
 
@@ -133,15 +138,16 @@ negative/non-article fixtures, text/typed-block parity, deterministic identity,
 metadata, size/URL limitations and cancellation. `WebArticleDOMTests` tests
 semantic DOM reconstruction separately from Readability's article selection.
 
-The implementation and tests are committed on the PR. **Apple CI/test execution
-remains unverified until the now-manual workflows are dispatched.**
+The implementation and tests passed manual [Fast CI #38686086127](https://github.com/hoangbkit/TextExtractor/actions/runs/38686086127) and [Full CI #38690127546](https://github.com/hoangbkit/TextExtractor/actions/runs/38690127546). Demo Release [#38681709018](https://github.com/hoangbkit/TextExtractor/actions/runs/38681709018) also passed. These are build/automated-test results, not proof of interactive UI or signed on-device deployment.
 
 ## Implementation status
 
 - [x] Standalone product/target and web-specific APIs exist; no source under `Sources/TextExtractor/**` changed.
 - [x] Typed article parser, model tests, positive/negative golden fixtures, demo inspector, release workflow and documentation are committed on PR #6.
 - [x] All three GitHub Actions workflows are manual-only.
-- [ ] Build, fixture execution, demo UI validation, release assets and mycli deployment remain unverified at user request.
-- [ ] Confirm Swift 6.2 compatibility requirements against the supported toolchains before release.
+- [x] Package tests, fixture execution, macOS/iOS demo builds, and unsigned demo release assets verified in manual CI (run links above).
+- [x] Swift 6.2+ compiler requirement confirmed; macOS 15 Intel and ARM CI passed with Xcode 26.3.
+- [ ] Interactive demo UI acceptance, signed mycli deployment, and on-device launch remain unverified.
+- [ ] Run the final release gate on the intended tag commit before publishing.
 
 See [`WEB_ARTICLE_RELEASE_CHECKLIST.md`](WEB_ARTICLE_RELEASE_CHECKLIST.md) for the independent package release gates.

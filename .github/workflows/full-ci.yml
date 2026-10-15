@@ -30,6 +30,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Select Xcode 26.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d /Applications/Xcode_26.3.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
       - name: Toolchain info
         run: |
           uname -m
@@ -76,6 +85,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Select Xcode 26.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d /Applications/Xcode_26.3.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+          xcodebuild -version
+          swift --version
 
       - name: Toolchain info
         run: |

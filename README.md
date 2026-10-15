@@ -10,9 +10,9 @@ TextExtractor is designed for macOS and iOS applications that need predictable p
 
 - macOS 15+
 - iOS 26+
-- Swift tools 5.9+ for the existing core package manifest and core sources; **the optional `TextExtractorWeb` product currently depends on SwiftReadability 0.3.3, which requires Swift 6.2**. Since SwiftPM resolves dependency manifests package-wide, older toolchain compatibility must be checked before release.
+- **Swift 6.2+ compiler required for package resolution in v1.2.0**, including projects that import only the original `TextExtractor` library. Although the root manifest declares `swift-tools-version: 5.9`, the new SwiftReadability 0.3.3 dependency declares 6.2, and SwiftPM resolves its manifest package-wide. Swift 6.1.2 fails dependency resolution; use a newer Xcode toolchain (Xcode 26.3 was verified in CI).
 
-The package manifest intentionally uses string deployment versions so Swift tools 5.9 can express the iOS 26 minimum while the package remains consumable by the macOS 15 CI toolchain.
+The supported **runtime** versions remain macOS 15.0+ and iOS 26.0+. The Xcode/Swift compiler requirement is a separate build-time constraint.
 
 ## Supported formats
 
@@ -121,8 +121,9 @@ non-article pages are not guaranteed to produce readable output. Source HTML
 is not retained in the result.
 
 Full API/normalization details: [Web article contract](docs/WEB_ARTICLE_CONTRACT.md).
-The new module is unreleased and its build/regression validation has been
-deferred, so do not treat this API example as a verified production release.
+The standalone web module and typed-fixture regressions passed Fast CI and
+Full CI on the v1.2.0 preparation branch. Source compatibility with the core
+library is preserved, but adopting v1.2.0 requires a Swift 6.2+ compiler.
 
 ## Concurrency
 
@@ -267,7 +268,7 @@ All three workflows are **manual-only** (`workflow_dispatch`):
 Choose the branch/ref in **GitHub Actions → selected workflow → Run workflow**.
 See `docs/TESTING.md` for regression-test guidance and
 `Examples/TextExtractorDemo/README.md` for release/deploy instructions.
-The new workflows have not been manually dispatched or verified on this PR.
+Verified on the v1.2.0 preparation branch: [Fast CI #38686086127](https://github.com/hoangbkit/TextExtractor/actions/runs/38686086127) passed package tests; [Full CI #38690127546](https://github.com/hoangbkit/TextExtractor/actions/runs/38690127546) passed its macOS 15 Intel/Apple Silicon, macOS 26 Apple Silicon, and iOS Simulator jobs; [Demo Release #38681709018](https://github.com/hoangbkit/TextExtractor/actions/runs/38681709018) built/published unsigned archives and a generated project ZIP. Physical device signing, mycli installation, and runtime UI acceptance remain unverified; these CI results do not automatically validate the final release tag.
 
 ## Releases
 

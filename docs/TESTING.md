@@ -12,7 +12,7 @@ When **Full CI is manually dispatched**, its matrix runs the package and macOS d
 - Apple Silicon macOS 15: `macos-15`
 - Apple Silicon macOS 26: `macos-26`
 
-The iOS demo is generated and built for a generic iOS Simulator destination on `macos-26`. **Fast CI**, **Full CI** and **Demo Release** are all `workflow_dispatch`-only. There are no automatic push/PR CI events. The new web-feature tests and demos have not yet been run on these environments.
+The iOS demo is generated and built for a generic iOS Simulator destination on `macos-26`. **Fast CI**, **Full CI** and **Demo Release** are all `workflow_dispatch`-only. There are no automatic push/PR CI events. The web-feature package tests passed [Fast CI #38686086127](https://github.com/hoangbkit/TextExtractor/actions/runs/38686086127); the macOS/iOS demo build matrix passed [Full CI #38690127546](https://github.com/hoangbkit/TextExtractor/actions/runs/38690127546).
 
 ## Local verification
 
@@ -65,10 +65,11 @@ fixture parity, deterministic IDs, metadata, rejection cases, cancellation and
 limits. Golden data lives under `Tests/TextExtractorWebTests/Fixtures` and is
 intended to lock down output semantics, not merely check nonempty text.
 
-**Toolchain:** SwiftReadability 0.3.3 requires Swift 6.2. Older CI toolchains
-that previously built only the core product may now fail package resolution.
-This must be evaluated before declaring the version releasable; a target-scoped
-link does not guarantee a dependency's package manifest can be ignored.
+**Toolchain:** The new SwiftReadability 0.3.3 dependency requires **Swift
+6.2+ for the entire package graph**, even when clients link only core
+`TextExtractor`. Swift 6.1.2 failed dependency resolution on macOS 15;
+Full CI succeeded when Xcode 26.3 was selected. This is a compiler/toolchain
+requirement; deployment minimums remain macOS 15.0 and iOS 26.0.
 
 ### Manual Actions and demo-release verification
 
@@ -94,8 +95,7 @@ The actual release deployment remains a **separate manual gate** on a signed
 local machine using `mycli deploy mac --release --tag <tag>` and
 `mycli deploy ios --release --tag <tag>`. See the
 [web-article release checklist](WEB_ARTICLE_RELEASE_CHECKLIST.md) for exact
-unverified requirements. Neither CI nor live release was executed as part
-of the PR's implementation passes.
+remaining manual requirements. [Demo Release #38681709018](https://github.com/hoangbkit/TextExtractor/actions/runs/38681709018) passed for unsigned assets and the generated project ZIP; signed local deployment and the final semantic-version release have **not** been validated.
 
 
 ## Test organization

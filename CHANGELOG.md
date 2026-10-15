@@ -4,7 +4,7 @@ All notable caller-visible changes to TextExtractor are recorded here.
 
 The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 
-## Unreleased
+## 1.2.0 — 2026-10-15
 
 ### Added
 
@@ -16,12 +16,17 @@ The project follows Semantic Versioning; see `docs/VERSIONING.md`.
 - Manual-only Demo Release workflow for unsigned universal macOS archives, unsigned iOS device archives, and a generated Xcode project ZIP consumable by mycli.
 - Dedicated web-article fixtures, golden-output tests, DOM-structure tests, and standalone API documentation.
 
+### Fixed
+
+- Prefer a retained article H1 when available. When Readability drops the H1, remove a site-name suffix from the page title **only when it matches publisher metadata**, and use the normalized title consistently for the result and restored heading. Preserve meaningful title punctuation and avoid blind separator splitting.
+
 ### Compatibility and limitations
 
 - Existing `Sources/TextExtractor/**`, existing public `ExtractedTextDocument`, default extraction routing, and core format semantics are unchanged. `TextExtractorWeb` has an independent result contract; it is not automatically registered as a generic HTML extractor.
 - `WebArticleExtractor` **does not download pages or execute JavaScript**. It cannot guarantee extraction from paywalled, authenticated, JavaScript-only, or non-article pages.
-- SwiftReadability is pinned to 0.3.3 and requires Swift 6.2. Because SwiftPM may resolve dependency manifests package-wide, compatibility with older toolchains is **not yet established**, even for apps using only the original `TextExtractor` product.
-- As directed during development, the new web product, demo UI, and release workflow **have not been built or validated**; manual CI and release/deployment gates remain open. Do not treat this entry as a release approval.
+- **Minimum build toolchain is now Swift 6.2+ for the whole package**, including core-only consumers: SwiftReadability 0.3.3 declares `swift-tools-version: 6.2`, and SwiftPM resolves its manifest package-wide. Swift 6.1.2 was confirmed to fail dependency resolution. The root manifest still declares 5.9; that does **not** make older compilers compatible. OS deployment minimums remain macOS 15.0 and iOS 26.0.
+- Package tests passed [Fast CI #38686086127](https://github.com/hoangbkit/TextExtractor/actions/runs/38686086127), the Intel/Apple Silicon macOS 15 and macOS 26 build/test matrix plus iOS 26 Simulator build passed [Full CI #38690127546](https://github.com/hoangbkit/TextExtractor/actions/runs/38690127546), and unsigned demo archives plus the Xcode project ZIP were published by [Demo Release #38681709018](https://github.com/hoangbkit/TextExtractor/actions/runs/38681709018). These runs predate the documentation-only release commit; rerun release gates as needed against the final tag commit.
+- Physical-device execution, locally signed mycli deployment, and interactive demo inspection remain separate, unverified release checks.
 
 ## 1.1.0 — 2026-09-23
 
